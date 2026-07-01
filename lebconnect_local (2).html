@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>MLN — My Lebanese Network</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.development.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.addEventListener("error", function(e) {
+    var root = document.getElementById("root");
+    if (root && !root.hasChildNodes()) {
+      root.innerHTML = '<div style="font-family:system-ui;max-width:600px;margin:60px auto;padding:24px;background:#fff3f3;border:1px solid #f5c6c6;border-radius:12px;color:#a00;">' +
+        '<h2 style="margin-bottom:12px;">⚠️ LebConnect could not load</h2>' +
+        '<p style="margin-bottom:10px;font-size:14px;line-height:1.6;">This usually means a script library failed to load from the CDN — often caused by a restricted/corporate network blocking external scripts.</p>' +
+        '<p style="margin-bottom:10px;font-size:14px;line-height:1.6;">Try opening this file on a different network, or check with your IT team about allowing cdnjs.cloudflare.com and jsdelivr.net.</p>' +
+        '<p style="font-size:12px;color:#888;">Technical detail: ' + (e.message || "unknown error") + '</p>' +
+        '</div>';
+    }
+  });
+</script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #f8f6f2; color: #1a1a1a; }
+  input, select, textarea, button { font-family: inherit; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid #C62828; outline-offset: 1px; }
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #f0ede8; } ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const RED = "#C62828", CEDAR = "#2E7D32";
+
+// ════════════════════════════════════════════════════════════════
+// CONFIG — edit these to connect to YOUR Supabase project
+// ════════════════════════════════════════════════════════════════
+const SUPABASE_URL = "https://peqcryhrwaapqzwedqxc.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_fCPWW2wyYk5i3V2ZX7k0Yw_FGQK79bD";
+// ════════════════════════════════════════════════════════════════
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── MODERATION / ANTI-HARASSMENT CONFIG ──────────────────────────
+const BANNED_TERMS = [
+  "idiot","stupid","kill yourself","kys","whore","slut","bitch","fuck you",
+  "terrorist","nigger","faggot","retard"
+];
+const MAX_MESSAGES_PER_MINUTE = 8;
+const REPORTS_BEFORE_AUTOBLOCK = 3;
+
+function containsBannedContent(text) {
+  const lower = text.toLowerCase();
+  return BANNED_TERMS.some(term => lower.includes(term));
+}
+function checkRateLimit(timestamps) {
+  const now = Date.now();
+  const recent = timestamps.filter(t => now - t < 60000);
+  return { allowed: recent.length < MAX_MESSAGES_PER_MINUTE, recent };
+}
+// ──────────────────────────────────────────────────────────────────
+
+const DIASPORA_COUNTRIES = [
+  "France","United States","Brazil","Canada","Australia","Germany",
+  "United Kingdom","UAE","Argentina","Mexico","Ivory Coast","Nigeria",
+  "Saudi Arabia","Sweden","Senegal","Colombia","Venezuela","Chile",
+  "Belgium","Switzerland","Italy","Spain","Greece","Cyprus",
+  "Kuwait","Qatar","Bahrain","Jordan","Egypt","South Africa",
+  "New Zealand","Japan","China","Singapore","Hong Kong",
+];
+
+const COUNTRIES = ["All countries","France","United States","United Kingdom","UAE","Brazil","Canada","Germany","Australia","Lebanon","Saudi Arabia","Argentina","Mexico","Other"];
+const INDUSTRIES = ["All industries","Finance","Technology","Medicine","Architecture","Consulting","Media","Law","Education","Other"];
+const COLOR_PAIRS = [
+  {color:"#C62828",bg:"#FFEBEE"},{color:"#1565C0",bg:"#E3F2FD"},
+  {color:"#2E7D32",bg:"#E8F5E9"},{color:"#6A1B9A",bg:"#F3E5F5"},
+  {color:"#E65100",bg:"#FFF3E0"},{color:"#00695C",bg:"#E0F2F1"},
+  {color:"#4527A0",bg:"#EDE7F6"},{color:"#AD1457",bg:"#FCE4EC"},
+];
+
+const GROUPS = [
+  {name:"Lebanese in France",icon:"🇫🇷",type:"Country",members:2840},
+  {name:"Lebanese in USA",icon:"🇺🇸",type:"Country",members:4120},
+  {name:"Lebanese in UAE",icon:"🇦🇪",type:"Country",members:3390},
+  {name:"Lebanese in Brazil",icon:"🇧🇷",type:"Country",members:1750},
+  {name:"Lebanese in UK",icon:"🇬🇧",type:"Country",members:1560},
+  {name:"Lebanese in Canada",icon:"🇨🇦",type:"Country",members:2100},
+  {name:"Lebanese in Finance",icon:"💼",type:"Industry",members:3210},
+  {name:"Lebanese in Tech",icon:"💻",type:"Industry",members:2980},
+  {name:"Lebanese in Medicine",icon:"🏥",type:"Industry",members:1870},
+  {name:"Lebanese Architects",icon:"🏛️",type:"Industry",members:890},
+  {name:"AUB Alumni",icon:"🎓",type:"Alma Mater",members:6400},
+  {name:"LAU Alumni",icon:"🎓",type:"Alma Mater",members:4100},
+];
+
+const MAP_DOTS = [
+  {name:"France",members:2840,x:47,y:28},{name:"USA",members:4120,x:18,y:35},
+  {name:"UAE",members:3390,x:62,y:40},{name:"Brazil",members:1750,x:26,y:60},
+  {name:"Lebanon",members:1200,x:58,y:33},{name:"UK",members:1560,x:45,y:24},
+  {name:"Canada",members:2100,x:15,y:25},{name:"Australia",members:950,x:82,y:68},
+  {name:"Germany",members:820,x:50,y:26},{name:"Argentina",members:680,x:25,y:68},
+];
+
+function Avatar({ initials, color, bg, size=40, photoUrl }) {
+  if (photoUrl) {
+    return <img src={photoUrl} alt={initials} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:`2px solid ${color}30`}}/>;
+  }
+  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:size*.32,flexShrink:0,border:`2px solid ${color}30`}}>{initials}</div>;
+}
+function Badge({ children, color="#2E7D32", bg="#E8F5E9" }) {
+  return <span style={{fontSize:11,padding:"3px 9px",borderRadius:20,background:bg,color,fontWeight:600,display:"inline-flex",alignItems:"center",gap:4,whiteSpace:"nowrap"}}>{children}</span>;
+}
+function SectionLabel({ children }) {
+  return <div style={{fontSize:10,fontWeight:700,color:"#aaa",textTransform:"uppercase",letterSpacing:".07em",marginBottom:10}}>{children}</div>;
+}
+
+// ════════════════════════════════════════════════════════════════
+// HOME PAGE with animated "Who are the Lebanese in ___?" 
+// ════════════════════════════════════════════════════════════════
+function HomePage({ onEnter, onSignup, hasProfile }) {
+  const [wordIndex, setWordIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const canvasRef = useRef(null);
+  const animRef = useRef(null);
+
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => { setWordIndex(i => (i + 1) % DIASPORA_COUNTRIES.length); setVisible(true); }, 300);
+    }, 1600);
+    return () => clearInterval(iv);
+  }, []);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const W = canvas.offsetWidth, H = canvas.offsetHeight;
+    canvas.width = W; canvas.height = H;
+    const particles = DIASPORA_COUNTRIES.map(name => ({
+      name, x: Math.random()*W, y: Math.random()*H,
+      vx: (Math.random()-0.5)*0.45, vy: (Math.random()-0.5)*0.45,
+      r: Math.random()*2.5+1.5, alpha: Math.random()*0.5+0.4, phase: Math.random()*Math.PI*2,
+    }));
+    function draw(t) {
+      ctx.clearRect(0,0,W,H);
+      particles.forEach((p,i) => {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x<-80) p.x=W+80; if (p.x>W+80) p.x=-80;
+        if (p.y<-40) p.y=H+40; if (p.y>H+40) p.y=-40;
+        const pulse = 0.7+0.3*Math.sin(t/900+p.phase);
+        const alpha = p.alpha*pulse;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle=`rgba(198,40,40,${alpha})`; ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r+3,0,Math.PI*2); ctx.fillStyle=`rgba(198,40,40,${alpha*0.15})`; ctx.fill();
+        ctx.font = `500 11px system-ui, sans-serif`;
+        ctx.fillStyle = `rgba(80,20,20,${alpha*0.85})`;
+        ctx.fillText(p.name, p.x+p.r+5, p.y+4);
+        particles.forEach((q,j) => {
+          if (j<=i) return;
+          const dx=p.x-q.x, dy=p.y-q.y, dist=Math.sqrt(dx*dx+dy*dy);
+          if (dist<120) { ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.strokeStyle=`rgba(198,40,40,${(1-dist/120)*0.12})`; ctx.lineWidth=0.5; ctx.stroke(); }
+        });
+      });
+      animRef.current = requestAnimationFrame(draw);
+    }
+    animRef.current = requestAnimationFrame(draw);
+    return () => cancelAnimationFrame(animRef.current);
+  }, []);
+
+  return (
+    <div style={{position:"relative",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",overflow:"hidden",background:"linear-gradient(160deg,#fff8f8 0%,#fff 50%,#f0f7f0 100%)"}}>
+      <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",fontSize:320,opacity:.03,userSelect:"none",lineHeight:1,top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}>🌲</div>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:5,background:`linear-gradient(90deg, ${RED} 33%, #fff 33%, #fff 66%, ${CEDAR} 66%)`}}/>
+      <div style={{position:"relative",textAlign:"center",padding:"0 24px",maxWidth:700,zIndex:1}}>
+        <div style={{fontSize:13,fontWeight:600,color:RED,letterSpacing:".12em",textTransform:"uppercase",marginBottom:20,opacity:.8}}>My Lebanese Network</div>
+        <div style={{fontSize:"clamp(28px,5vw,52px)",fontWeight:800,color:"#1a1a1a",lineHeight:1.2,marginBottom:8}}>Who are the Lebanese</div>
+        <div style={{fontSize:"clamp(28px,5vw,52px)",fontWeight:800,lineHeight:1.2,marginBottom:36,display:"flex",alignItems:"center",justifyContent:"center",gap:12,flexWrap:"wrap"}}>
+          <span style={{color:"#ccc"}}>in</span>
+          <span style={{display:"inline-block",color:RED,textAlign:"center",transition:"opacity .28s ease, transform .28s ease",opacity:visible?1:0,transform:visible?"translateY(0)":"translateY(8px)",whiteSpace:"nowrap"}}>
+            {DIASPORA_COUNTRIES[wordIndex]}
+          </span>
+          <span style={{color:"#ccc"}}>?</span>
+        </div>
+        <p style={{fontSize:16,color:"#888",lineHeight:1.7,marginBottom:40,maxWidth:500,margin:"0 auto 40px"}}>
+          Find, connect, and network with Lebanese professionals worldwide — by country, company, industry, or Lebanese origin.
+        </p>
+        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
+          <button onClick={onEnter} style={{padding:"13px 32px",fontSize:15,fontWeight:700,background:RED,color:"#fff",border:"none",borderRadius:10,cursor:"pointer",boxShadow:"0 4px 20px rgba(198,40,40,.3)"}}>Explore the network →</button>
+          {!hasProfile && <button onClick={onSignup} style={{padding:"13px 32px",fontSize:15,fontWeight:700,background:"#fff",color:RED,border:`2px solid ${RED}`,borderRadius:10,cursor:"pointer"}}>Join the network</button>}
+        </div>
+        <div style={{marginTop:48,display:"flex",gap:32,justifyContent:"center",flexWrap:"wrap"}}>
+          {[["🌍","35+ countries"],["👥","Real members"],["💼","All industries"],["🌲","Lebanese roots"]].map(([icon,label])=>(
+            <div key={label} style={{textAlign:"center"}}><div style={{fontSize:22}}>{icon}</div><div style={{fontSize:12,color:"#aaa",marginTop:4,fontWeight:500}}>{label}</div></div>
+          ))}
+        </div>
+      </div>
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:5,background:`linear-gradient(90deg, ${RED} 33%, #fff 33%, #fff 66%, ${CEDAR} 66%)`}}/>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// AUTH SCREEN — real Supabase login/signup
+// ════════════════════════════════════════════════════════════════
+function AuthScreen({ onAuthed, onClose }) {
+  const [mode, setMode] = useState("signup"); // signup | login
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit() {
+    setError(""); setLoading(true);
+    try {
+      if (mode === "signup") {
+        const { data, error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        onAuthed(data.user);
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        onAuthed(data.user);
+      }
+    } catch (e) {
+      setError(e.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
+      <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:400,boxShadow:"0 24px 80px rgba(0,0,0,.25)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+                        <div style={{fontSize:18,fontWeight:800,color:RED}}>🌲 {mode==="signup"?"Create your account":"Welcome back"}</div>
+          <button style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#bbb"}} onClick={onClose}>✕</button>
+        </div>
+        <div style={{display:"grid",gap:12}}>
+          <div>
+            <div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Email</div>
+            <input type="email" style={{padding:"9px 12px",border:"1px solid #ddd",borderRadius:8,fontSize:13,width:"100%"}} value={email} onChange={e=>setEmail(e.target.value)} />
+          </div>
+          <div>
+            <div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Password</div>
+            <input type="password" style={{padding:"9px 12px",border:"1px solid #ddd",borderRadius:8,fontSize:13,width:"100%"}} value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 6 characters" />
+          </div>
+          {error && <div style={{fontSize:12,color:RED,background:"#FFEBEE",padding:"8px 12px",borderRadius:8}}>{error}</div>}
+          <button disabled={loading} style={{padding:"11px 0",fontSize:14,fontWeight:700,background:RED,color:"#fff",border:"none",borderRadius:8,cursor:"pointer",opacity:loading?.6:1}} onClick={handleSubmit}>
+            {loading ? "Please wait…" : mode==="signup" ? "Create account →" : "Log in →"}
+          </button>
+          <div style={{textAlign:"center",fontSize:12,color:"#888"}}>
+            {mode==="signup" ? "Already have an account? " : "New to LebConnect? "}
+            <span style={{color:RED,fontWeight:600,cursor:"pointer"}} onClick={()=>setMode(mode==="signup"?"login":"signup")}>
+              {mode==="signup" ? "Log in" : "Sign up"}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// MAIN APP
+// ════════════════════════════════════════════════════════════════
+function App() {
+  const [session, setSession] = useState(null);
+  const [profiles, setProfiles] = useState([]);
+  const [myProfile, setMyProfile] = useState(null);
+  const [loadingProfiles, setLoadingProfiles] = useState(true);
+
+  const [page, setPage] = useState("home");
+  const [viewProfile, setViewProfile] = useState(null);
+  const [searchQ, setSearchQ] = useState("");
+  const [filterCountry, setFilterCountry] = useState("All countries");
+  const [filterIndustry, setFilterIndustry] = useState("All industries");
+  const [filterLived, setFilterLived] = useState(false);
+  const [groupFilter, setGroupFilter] = useState("All");
+  const [mapHover, setMapHover] = useState(null);
+  const [notification, setNotification] = useState(null);
+  const [showAuth, setShowAuth] = useState(false);
+  const [showCreateProfile, setShowCreateProfile] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [liveStats, setLiveStats] = useState({ requests: 0, accepted: 0, messages: 0 });
+  const [form, setForm] = useState({firstName:"",lastName:"",role:"",company:"",country:"",city:"",livedLebanon:false,bio:"",languages:"",industry:"Technology"});
+  const [editForm, setEditForm] = useState({});
+
+  const [connections, setConnections] = useState([]);
+  const [endorsements, setEndorsements] = useState([]);
+  const [blocks, setBlocks] = useState([]);
+  const [activeChat, setActiveChat] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [msgInput, setMsgInput] = useState("");
+  const [myMsgTimestamps, setMyMsgTimestamps] = useState([]);
+  const [moderationWarning, setModerationWarning] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(null);
+  const messagesEndRef = useRef(null);
+
+  function notify(msg) { setNotification(msg); setTimeout(() => setNotification(null), 2800); }
+
+  // ── AUTH STATE ──
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  // ── LOAD ALL PROFILES ──
+  async function loadProfiles() {
+    setLoadingProfiles(true);
+    const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
+    if (!error && data) setProfiles(data);
+    setLoadingProfiles(false);
+  }
+  useEffect(() => { loadProfiles(); }, []);
+
+  // ── FIND MY OWN PROFILE ──
+  useEffect(() => {
+    if (session?.user && profiles.length >= 0) {
+      const mine = profiles.find(p => p.user_id === session.user.id);
+      setMyProfile(mine || null);
+      if (session.user && !mine && profiles.length > 0) {
+        // logged in but no profile yet
+      }
+    }
+  }, [session, profiles]);
+
+  // ── LOAD CONNECTIONS / ENDORSEMENTS / BLOCKS ──
+  async function loadRelations() {
+    const [c, e, b] = await Promise.all([
+      supabase.from("connections").select("*"),
+      supabase.from("endorsements").select("*"),
+      supabase.from("blocks").select("*"),
+    ]);
+    if (c.data) setConnections(c.data);
+    if (e.data) setEndorsements(e.data);
+    if (b.data) setBlocks(b.data);
+  }
+  useEffect(() => { loadRelations(); }, []);
+
+  // ── LIVE INTERACTION COUNTER ──
+  async function loadLiveStats() {
+    const [r, a, m] = await Promise.all([
+      supabase.from("interaction_events").select("id", { count: "exact", head: true }).eq("event_type", "request_sent"),
+      supabase.from("interaction_events").select("id", { count: "exact", head: true }).eq("event_type", "request_accepted"),
+      supabase.from("interaction_events").select("id", { count: "exact", head: true }).eq("event_type", "first_message"),
+    ]);
+    setLiveStats({ requests: r.count || 0, accepted: a.count || 0, messages: m.count || 0 });
+  }
+  useEffect(() => {
+    loadLiveStats();
+    const channel = supabase.channel("interaction_events_live")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "interaction_events" }, () => loadLiveStats())
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, []);
+
+  async function logEvent(type) {
+    await supabase.from("interaction_events").insert({ event_type: type });
+  }
+
+  // ── LOAD MESSAGES FOR ACTIVE CHAT ──
+  async function loadMessages(otherId) {
+    if (!myProfile || !otherId) return;
+    const { data } = await supabase.from("messages").select("*")
+      .or(`and(from_id.eq.${myProfile.id},to_id.eq.${otherId}),and(from_id.eq.${otherId},to_id.eq.${myProfile.id})`)
+      .order("created_at", { ascending: true });
+    if (data) setMessages(data);
+  }
+  useEffect(() => { if (activeChat) loadMessages(activeChat); }, [activeChat, myProfile]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages]);
+
+  // ── REALTIME: live message updates + unread tracking ──
+  const [unreadFrom, setUnreadFrom] = useState({}); // { senderId: count }
+  useEffect(() => {
+    if (!myProfile) return;
+    const channel = supabase.channel("messages_live_" + myProfile.id)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
+        const m = payload.new;
+        const isForMe = m.to_id === myProfile.id;
+        const isFromMe = m.from_id === myProfile.id;
+        if (!isForMe && !isFromMe) return;
+        // If this message belongs to the currently open chat, append it live
+        const otherParty = isForMe ? m.from_id : m.to_id;
+        if (activeChat === otherParty) {
+          setMessages(prev => prev.some(x => x.id === m.id) ? prev : [...prev, m]);
+        }
+        // If it's an incoming message not from an open chat, count as unread + notify
+        if (isForMe && activeChat !== m.from_id) {
+          setUnreadFrom(prev => ({ ...prev, [m.from_id]: (prev[m.from_id]||0) + 1 }));
+          const sender = profiles.find(p => p.id === m.from_id);
+          notify(`✉️ New message from ${sender ? sender.name.split(" ")[0] : "someone"}`);
+        }
+      })
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [myProfile, activeChat, profiles]);
+
+  function openChat(otherId) {
+    setActiveChat(otherId);
+    setUnreadFrom(prev => { const next = {...prev}; delete next[otherId]; return next; });
+  }
+
+  // ── CREATE PROFILE ──
+  async function handleCreateProfile() {
+    if (!form.firstName.trim() || !form.lastName.trim()) return alert("Please enter your first and last name.");
+    if (!session?.user) return setShowAuth(true);
+    const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`;
+    const pair = COLOR_PAIRS[profiles.length % COLOR_PAIRS.length];
+    const initials = (form.firstName[0] + form.lastName[0]).toUpperCase();
+    let photo_url = null;
+    if (photoFile) {
+      photo_url = await uploadPhoto(photoFile, session.user.id);
+    }
+    const payload = {
+      user_id: session.user.id,
+      name: fullName, role: form.role, company: form.company,
+      country: form.country, city: form.city,
+      lived_lebanon: form.livedLebanon, bio: form.bio,
+      languages: form.languages.split(",").map(l=>l.trim()).filter(Boolean),
+      industry: form.industry, email: session.user.email,
+      initials, color: pair.color, bg: pair.bg, photo_url,
+    };
+    const { data, error } = await supabase.from("profiles").insert(payload).select().single();
+    if (error) { notify("Error: " + error.message); return; }
+    setMyProfile(data);
+    setProfiles(prev => [data, ...prev]);
+    setShowCreateProfile(false);
+    setPhotoFile(null); setPhotoPreview(null);
+    setPage("myprofile");
+                    notify("Welcome to My Lebanese Network! 🌲");
+  }
+
+  async function uploadPhoto(file, userId) {
+    setUploadingPhoto(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${userId}-${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (error) { notify("Photo upload failed: " + error.message); return null; }
+      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+      return data.publicUrl;
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  function handlePhotoSelect(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { notify("Photo must be under 5MB"); return; }
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  }
+
+  async function handleSaveEdit() {
+    if (!editForm.firstName?.trim() || !editForm.lastName?.trim() || !myProfile) return;
+    const fullName = `${editForm.firstName.trim()} ${editForm.lastName.trim()}`;
+    const payload = {
+      name: fullName, role: editForm.role, company: editForm.company,
+      country: editForm.country, city: editForm.city,
+      lived_lebanon: editForm.livedLebanon ?? editForm.lived_lebanon,
+      bio: editForm.bio,
+      languages: typeof editForm.languages === "string" ? editForm.languages.split(",").map(l=>l.trim()).filter(Boolean) : editForm.languages,
+      industry: editForm.industry,
+    };
+    const { data, error } = await supabase.from("profiles").update(payload).eq("id", myProfile.id).select().single();
+    if (error) { notify("Error: " + error.message); return; }
+    setMyProfile(data);
+    setProfiles(prev => prev.map(p => p.id===data.id ? data : p));
+    setShowEditProfile(false);
+    notify("Profile updated!");
+  }
+
+  async function handleEditPhotoUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file || !myProfile || !session) return;
+    if (file.size > 5 * 1024 * 1024) { notify("Photo must be under 5MB"); return; }
+    setUploadingPhoto(true);
+    const photo_url = await uploadPhoto(file, session.user.id);
+    if (photo_url) {
+      const { data, error } = await supabase.from("profiles").update({ photo_url }).eq("id", myProfile.id).select().single();
+      if (!error) { setMyProfile(data); setProfiles(prev => prev.map(p => p.id===data.id ? data : p)); notify("Photo updated! 📸"); }
+    }
+    setUploadingPhoto(false);
+  }
+
+  async function handleDeleteProfile() {
+    if (!myProfile) return;
+    if (!window.confirm("Delete your profile? This cannot be undone.")) return;
+    await supabase.from("profiles").delete().eq("id", myProfile.id);
+    setProfiles(prev => prev.filter(p => p.id !== myProfile.id));
+    setMyProfile(null);
+    setShowEditProfile(false);
+    setPage("discover");
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setMyProfile(null);
+    setPage("home");
+  }
+
+  async function sendConnectionRequest(otherId) {
+    if (!myProfile) return setShowAuth(true);
+    const existing = connections.find(c => 
+      (c.user_id===myProfile.id && c.connected_to===otherId) ||
+      (c.user_id===otherId && c.connected_to===myProfile.id)
+    );
+    if (existing) {
+      if (existing.status === "pending") { notify("Request already pending."); return; }
+      if (existing.status === "accepted") {
+        await supabase.from("connections").delete().eq("id", existing.id);
+        setConnections(prev => prev.filter(c => c.id !== existing.id));
+        notify("Disconnected");
+      }
+      return;
+    }
+    const { data, error } = await supabase.from("connections").insert({ user_id: myProfile.id, connected_to: otherId, status: "pending" }).select().single();
+    if (!error) {
+      setConnections(prev => [...prev, data]);
+      logEvent("request_sent");
+      notify("Connection request sent! 📨");
+    } else {
+      notify("Error: " + error.message);
+    }
+  }
+
+  async function respondToRequest(requestId, accept) {
+    const { data, error } = await supabase.from("connections").update({ status: accept ? "accepted" : "declined" }).eq("id", requestId).select().single();
+    if (!error) {
+      setConnections(prev => prev.map(c => c.id === requestId ? data : c));
+      if (accept) { logEvent("request_accepted"); notify("Connection accepted! 🤝"); }
+      else { notify("Request declined."); }
+    }
+  }
+
+  async function toggleEndorse(otherId) {
+    if (!myProfile) return setShowAuth(true);
+    const existing = endorsements.find(e => e.user_id===myProfile.id && e.endorsed_id===otherId);
+    if (existing) {
+      await supabase.from("endorsements").delete().eq("id", existing.id);
+      setEndorsements(prev => prev.filter(e => e.id !== existing.id));
+    } else {
+      const { data, error } = await supabase.from("endorsements").insert({ user_id: myProfile.id, endorsed_id: otherId }).select().single();
+      if (!error) { setEndorsements(prev => [...prev, data]); notify("Endorsed! ⭐"); }
+    }
+  }
+
+  async function toggleBlock(otherId) {
+    if (!myProfile) return;
+    const existing = blocks.find(b => b.blocker_id===myProfile.id && b.blocked_id===otherId);
+    if (existing) {
+      await supabase.from("blocks").delete().eq("id", existing.id);
+      setBlocks(prev => prev.filter(b => b.id !== existing.id));
+      notify("User unblocked.");
+    } else {
+      const { data, error } = await supabase.from("blocks").insert({ blocker_id: myProfile.id, blocked_id: otherId }).select().single();
+      if (!error) { setBlocks(prev => [...prev, data]); notify("User blocked."); }
+    }
+  }
+
+  async function reportUser(otherId, reason) {
+    if (!myProfile) return setShowAuth(true);
+    await supabase.from("reports").insert({ reporter_id: myProfile.id, reported_id: otherId, reason });
+    const countRes = await supabase.from("reports").select("id", { count: "exact" }).eq("reported_id", otherId);
+    if ((countRes.count || 0) >= REPORTS_BEFORE_AUTOBLOCK) {
+      notify("Report submitted. This user has been flagged for review.");
+    } else {
+      notify("Report submitted. Thank you for helping keep LebConnect safe.");
+    }
+    setShowReportModal(null);
+  }
+
+  async function sendMessage() {
+    const trimmed = msgInput.trim();
+    if (!trimmed || !myProfile || !activeChat) return;
+    const { allowed, recent } = checkRateLimit(myMsgTimestamps);
+    if (!allowed) {
+      setModerationWarning("You're sending messages too quickly. Please wait a moment.");
+      setTimeout(() => setModerationWarning(null), 4000);
+      return;
+    }
+    if (containsBannedContent(trimmed)) {
+      setModerationWarning("This message was blocked for potentially harassing language. Please be respectful.");
+      setTimeout(() => setModerationWarning(null), 4500);
+      return;
+    }
+    const isFirstMessage = messages.length === 0;
+    setMyMsgTimestamps([...recent, Date.now()]);
+    const { data, error } = await supabase.from("messages").insert({ from_id: myProfile.id, to_id: activeChat, text: trimmed }).select().single();
+    if (!error) {
+      setMessages(prev => [...prev, data]);
+      setMsgInput("");
+      if (isFirstMessage) logEvent("first_message");
+    }
+  }
+
+  const filtered = profiles.filter(p => {
+    const q = searchQ.toLowerCase();
+    const mq = !q || [p.name,p.company,p.role,p.industry,p.city,p.country,p.origin].some(f=>f?.toLowerCase().includes(q));
+    const mc = filterCountry==="All countries" || p.country===filterCountry;
+    const mi = filterIndustry==="All industries" || p.industry===filterIndustry;
+    const ml = !filterLived || p.lived_lebanon;
+    const notMe = !myProfile || p.id !== myProfile.id;
+    return mq && mc && mi && ml && notMe;
+  });
+
+  const myConnections = connections.filter(c => (c.user_id===myProfile?.id || c.connected_to===myProfile?.id) && c.status==="accepted")
+    .map(c => c.user_id===myProfile?.id ? c.connected_to : c.user_id);
+  const myPendingSent = connections.filter(c => c.user_id===myProfile?.id && c.status==="pending").map(c => c.connected_to);
+  const myPendingReceived = connections.filter(c => c.connected_to===myProfile?.id && c.status==="pending");
+  const myEndorsements = endorsements.filter(e => e.user_id === myProfile?.id).map(e => e.endorsed_id);
+  const myBlocks = blocks.filter(b => b.blocker_id === myProfile?.id).map(b => b.blocked_id);
+  const chatList = profiles.filter(p => myConnections.includes(p.id));
+
+  function connectionLabel(otherId) {
+    if (myConnections.includes(otherId)) return "✓ Connected";
+    if (myPendingSent.includes(otherId)) return "⏳ Request sent";
+    return "Send request";
+  }
+
+  const S = {
+    app: {display:"flex",minHeight:"100vh",fontSize:14},
+    sidebar: {width:210,background:"#fff",borderRight:"1px solid #f0ede8",display:"flex",flexDirection:"column",flexShrink:0,position:"sticky",top:0,height:"100vh",overflowY:"auto"},
+    main: {flex:1,padding:"24px 28px",background:"#f8f6f2",minHeight:"100vh"},
+    card: {background:"#fff",border:"1px solid #f0ede8",borderRadius:12,padding:16,marginBottom:12},
+    btn: (primary,danger) => ({padding:"7px 16px",fontSize:12,fontWeight:600,border:danger?"1px solid #ffcdd2":primary?"none":"1px solid #ddd",borderRadius:8,cursor:"pointer",background:danger?"#ffebee":primary?RED:"#fff",color:danger?RED:primary?"#fff":"#444"}),
+    input: {padding:"8px 12px",border:"1px solid #ddd",borderRadius:8,fontSize:13,width:"100%",background:"#fff",color:"#1a1a1a"},
+    navItem: (active) => ({display:"flex",alignItems:"center",gap:10,padding:"10px 16px",fontSize:13,color:active?RED:"#666",cursor:"pointer",background:active?"#FFF5F5":"transparent",borderLeft:`3px solid ${active?RED:"transparent"}`,fontWeight:active?700:400}),
+    chip: (on) => ({padding:"5px 12px",border:`1px solid ${on?RED:"#ddd"}`,borderRadius:20,fontSize:12,cursor:"pointer",background:on?"#FFF0F0":"#fff",color:on?RED:"#666",fontWeight:on?600:400,whiteSpace:"nowrap"}),
+  };
+
+  const navItems = [
+    {id:"home",icon:"🏠",label:"Home"},
+    {id:"discover",icon:"🔍",label:"Discover"},
+    {id:"requests",icon:"📨",label:"Requests", badge: myPendingReceived.length},
+    {id:"map",icon:"🗺️",label:"World map"},
+    {id:"community",icon:"👥",label:"Community"},
+    {id:"messages",icon:"✉️",label:"Messages", badge: Object.values(unreadFrom).reduce((a,b)=>a+b,0)},
+    {id:"myprofile",icon:"🌲",label:"My profile"},
+  ];
+
+  function goProfile(p) { setViewProfile(p); setPage("discover"); }
+
+  if (page === "home") {
+    return <HomePage onEnter={()=>setPage("discover")} onSignup={()=>session ? setShowCreateProfile(true) : setShowAuth(true)} hasProfile={!!myProfile} />;
+  }
+
+  return (
+    <div style={S.app}>
+      {notification && <div style={{position:"fixed",top:16,right:16,background:RED,color:"#fff",padding:"10px 18px",borderRadius:10,fontWeight:600,fontSize:13,zIndex:999,boxShadow:"0 4px 20px rgba(0,0,0,.2)"}}>{notification}</div>}
+
+      <div style={S.sidebar}>
+        <div style={{padding:"18px 16px 14px",borderBottom:"1px solid #f0ede8",cursor:"pointer"}} onClick={()=>setPage("home")}>
+          <div style={{fontSize:18,fontWeight:800,color:RED}}>🌲 MLN</div>
+          <div style={{fontSize:11,color:"#aaa",marginTop:3}}>My Lebanese Network</div>
+        </div>
+        <div style={{flex:1,paddingTop:6}}>
+          {navItems.map(n => (
+            <div key={n.id} style={S.navItem(page===n.id)} onClick={()=>{setPage(n.id);setViewProfile(null);}}>
+              <span style={{fontSize:16}}>{n.icon}</span>{n.label}
+              {n.badge > 0 && <span style={{marginLeft:"auto",background:RED,color:"#fff",fontSize:10,fontWeight:700,borderRadius:10,padding:"1px 6px"}}>{n.badge}</span>}
+            </div>
+          ))}
+        </div>
+        <div style={{padding:"12px 16px",borderTop:"1px solid #f0ede8"}}>
+          {!session ? (
+            <button style={{...S.btn(true),width:"100%",padding:"9px 0"}} onClick={()=>setShowAuth(true)}>Log in / Sign up</button>
+          ) : !myProfile ? (
+            <button style={{...S.btn(true),width:"100%",padding:"9px 0"}} onClick={()=>setShowCreateProfile(true)}>Create your profile</button>
+          ) : (
+            <>
+              <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 0"}} onClick={()=>setPage("myprofile")}>
+                <Avatar initials={myProfile.initials} color={myProfile.color} bg={myProfile.bg} size={32} photoUrl={myProfile.photo_url}/>
+                <div style={{fontSize:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{myProfile.name}</div>
+              </div>
+              <button style={{...S.btn(false),width:"100%",marginTop:8,fontSize:11,padding:"6px 0"}} onClick={handleLogout}>Log out</button>
+            </>
+          )}
+        </div>
+      </div>
+
+      <div style={S.main}>
+        {/* DISCOVER */}
+        {page==="discover" && !viewProfile && (
+          <div>
+            <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Discover Lebanese professionals</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:18}}>{loadingProfiles ? "Loading members…" : `${filtered.length} member${filtered.length!==1?"s":""} found`}</div>
+            <div style={{display:"flex",gap:8,marginBottom:12}}>
+              <input style={{...S.input,flex:1}} placeholder="Search name, company, industry, city…" value={searchQ} onChange={e=>setSearchQ(e.target.value)}/>
+            </div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
+              <select style={{...S.input,width:"auto"}} value={filterCountry} onChange={e=>setFilterCountry(e.target.value)}>{COUNTRIES.map(c=><option key={c}>{c}</option>)}</select>
+              <select style={{...S.input,width:"auto"}} value={filterIndustry} onChange={e=>setFilterIndustry(e.target.value)}>{INDUSTRIES.map(i=><option key={i}>{i}</option>)}</select>
+              <div style={S.chip(filterLived)} onClick={()=>setFilterLived(!filterLived)}>🌲 Lived in Lebanon</div>
+            </div>
+            <div style={{display:"flex",gap:18,alignItems:"center",marginBottom:18,flexWrap:"wrap"}}>
+              <div style={{...S.card,marginBottom:0,padding:"12px 18px",display:"flex",gap:18}}>
+                <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:RED}}>{liveStats.requests}</div><div style={{fontSize:10,color:"#aaa"}}>Requests sent</div></div>
+                <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:CEDAR}}>{liveStats.accepted}</div><div style={{fontSize:10,color:"#aaa"}}>Connections made</div></div>
+                <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#1565C0"}}>{liveStats.messages}</div><div style={{fontSize:10,color:"#aaa"}}>Conversations started</div></div>
+              </div>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(175px,1fr))",gap:12}}>
+              {filtered.map(p=>(
+                <div key={p.id} style={{...S.card,textAlign:"center",cursor:"pointer",marginBottom:0}} onClick={()=>goProfile(p)}>
+                  <div style={{display:"flex",justifyContent:"center",marginBottom:10}}><Avatar initials={p.initials} color={p.color} bg={p.bg} size={48} photoUrl={p.photo_url}/></div>
+                  <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{p.name}</div>
+                  <div style={{fontSize:11,color:"#888",marginBottom:6}}>{[p.role,p.company].filter(Boolean).join(" · ")}</div>
+                  {(p.city || p.country) && (
+                    <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"#E3F2FD",borderRadius:14,padding:"3px 10px",marginBottom:8,fontSize:11,fontWeight:700,color:"#0D47A1"}}>
+                      📍 {[p.city,p.country].filter(Boolean).join(", ")}
+                    </div>
+                  )}
+                  {p.lived_lebanon && <div style={{marginBottom:8}}><Badge>🌲 Lived in Lebanon</Badge></div>}
+                  <button style={S.btn(myConnections.includes(p.id))} onClick={e=>{e.stopPropagation();sendConnectionRequest(p.id);}}>{connectionLabel(p.id)}</button>
+                </div>
+              ))}
+            </div>
+            {!loadingProfiles && filtered.length===0 && <div style={{textAlign:"center",color:"#bbb",marginTop:80}}>No members found yet. Be the first to join!</div>}
+          </div>
+        )}
+
+        {/* REQUESTS */}
+        {page==="requests" && (
+          <div style={{maxWidth:560}}>
+            <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Connection requests</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:18}}>People who want to connect with you</div>
+            {!myProfile ? (
+              <div style={{...S.card,textAlign:"center",padding:40}}>Create a profile to receive connection requests.</div>
+            ) : myPendingReceived.length===0 ? (
+              <div style={{...S.card,textAlign:"center",padding:40,color:"#bbb"}}>No pending requests right now.</div>
+            ) : myPendingReceived.map(req => {
+              const sender = profiles.find(p => p.id === req.user_id);
+              if (!sender) return null;
+              return (
+                <div key={req.id} style={S.card}>
+                  <div style={{display:"flex",alignItems:"center",gap:14}}>
+                    <Avatar initials={sender.initials} color={sender.color} bg={sender.bg} size={48} photoUrl={sender.photo_url}/>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:700,fontSize:14}}>{sender.name}</div>
+                      <div style={{fontSize:12,color:"#888"}}>{[sender.role,sender.company].filter(Boolean).join(" · ")}</div>
+                      <div style={{fontSize:11,color:"#aaa"}}>📍 {[sender.city,sender.country].filter(Boolean).join(", ")}</div>
+                    </div>
+                    <div style={{display:"flex",gap:6}}>
+                      <button style={S.btn(true)} onClick={()=>respondToRequest(req.id,true)}>Accept</button>
+                      <button style={S.btn(false)} onClick={()=>respondToRequest(req.id,false)}>Decline</button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* PROFILE VIEW */}
+        {page==="discover" && viewProfile && (
+          <div style={{maxWidth:580}}>
+            <button style={{...S.btn(false),marginBottom:18}} onClick={()=>setViewProfile(null)}>← Back to discover</button>
+            <div style={S.card}>
+              <div style={{display:"flex",gap:18,alignItems:"flex-start",flexWrap:"wrap"}}>
+                <Avatar initials={viewProfile.initials} color={viewProfile.color} bg={viewProfile.bg} size={68} photoUrl={viewProfile.photo_url}/>
+                <div style={{flex:1,minWidth:200}}>
+                  <div style={{fontSize:20,fontWeight:800,marginBottom:2}}>{viewProfile.name}</div>
+                  <div style={{fontSize:13,color:"#888",marginBottom:6}}>{[viewProfile.role,viewProfile.company].filter(Boolean).join(" · ")}</div>
+                  {(viewProfile.city || viewProfile.country) && (
+                    <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#E3F2FD",border:"1px solid #BBDEFB",borderRadius:20,padding:"5px 12px",marginBottom:12,fontSize:13,fontWeight:700,color:"#0D47A1"}}>
+                      📍 Currently living in {[viewProfile.city,viewProfile.country].filter(Boolean).join(", ")}
+                    </div>
+                  )}
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
+                    {viewProfile.lived_lebanon && <Badge color={CEDAR} bg="#E8F5E9">🌲 Lived in Lebanon</Badge>}
+                    {viewProfile.industry && <Badge color="#555" bg="#f0f0f0">{viewProfile.industry}</Badge>}
+                    {viewProfile.languages?.map(l=><Badge key={l} color="#555" bg="#f8f8f8">{l}</Badge>)}
+                  </div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                    <button style={S.btn(myConnections.includes(viewProfile.id))} onClick={()=>sendConnectionRequest(viewProfile.id)}>{connectionLabel(viewProfile.id)}</button>
+                    <button style={S.btn(false)} onClick={()=>{if(!myProfile){setShowAuth(true);return;} if(!myConnections.includes(viewProfile.id)){notify("Connect first to send a message.");return;} setActiveChat(viewProfile.id);setPage("messages");}}>✉️ Message</button>
+                    <button style={S.btn(false)} onClick={()=>notify("Contact info request sent!")}>Request contact info</button>
+                    <button style={S.btn(myEndorsements.includes(viewProfile.id))} onClick={()=>toggleEndorse(viewProfile.id)}>{myEndorsements.includes(viewProfile.id)?"★ Endorsed":"☆ Endorse"}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {viewProfile.bio && <div style={S.card}><SectionLabel>About</SectionLabel><div style={{fontSize:13,color:"#555",lineHeight:1.75}}>{viewProfile.bio}</div></div>}
+          </div>
+        )}
+
+        {/* MAP */}
+        {page==="map" && (
+          <div>
+            <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Lebanese worldwide 🌍</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:18}}>Hover over dots to explore — click to browse that country</div>
+            <div style={{background:"#fff",border:"1px solid #f0ede8",borderRadius:16,padding:16,marginBottom:20}}>
+              <svg viewBox="0 0 100 80" style={{width:"100%",height:"auto",display:"block"}}>
+                <rect width="100" height="80" fill="#ddeef7" rx="4"/>
+                <ellipse cx="48" cy="34" rx="13" ry="10" fill="#b8d8a0" opacity=".8"/><ellipse cx="20" cy="37" rx="11" ry="13" fill="#b8d8a0" opacity=".8"/>
+                <ellipse cx="26" cy="63" rx="7" ry="8" fill="#b8d8a0" opacity=".8"/><ellipse cx="65" cy="44" rx="14" ry="10" fill="#b8d8a0" opacity=".8"/>
+                <ellipse cx="83" cy="65" rx="7" ry="6" fill="#b8d8a0" opacity=".8"/>
+                {MAP_DOTS.map(d=>{
+                  const r = Math.max(1.3,Math.min(3.8,d.members/1100)); const isH = mapHover===d.name;
+                  return (
+                    <g key={d.name} style={{cursor:"pointer"}} onMouseEnter={()=>setMapHover(d.name)} onMouseLeave={()=>setMapHover(null)}
+                      onClick={()=>{const c=d.name==="USA"?"United States":d.name;setFilterCountry(COUNTRIES.includes(c)?c:"All countries");setPage("discover");}}>
+                      <circle cx={d.x} cy={d.y} r={r+1.5} fill={RED} opacity=".12"/>
+                      <circle cx={d.x} cy={d.y} r={r} fill={isH?"#a00000":RED} opacity={isH?1:.8}/>
+                      {isH && <><rect x={d.x-11} y={d.y-10} width={22} height={8} rx={2} fill="white" stroke="#ddd" strokeWidth=".4"/><text x={d.x} y={d.y-5.5} textAnchor="middle" fontSize="2.8" fill="#222" fontWeight="700">{d.name}</text><text x={d.x} y={d.y-2.5} textAnchor="middle" fontSize="2.2" fill="#888">{d.members.toLocaleString()} members</text></>}
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:10}}>
+              {[...MAP_DOTS].sort((a,b)=>b.members-a.members).map(d=>(
+                <div key={d.name} style={{...S.card,padding:"12px 14px",cursor:"pointer",marginBottom:0}} onClick={()=>{const c=d.name==="USA"?"United States":d.name;setFilterCountry(COUNTRIES.includes(c)?c:"All countries");setPage("discover");}}>
+                  <div style={{fontWeight:700,fontSize:13}}>{d.name}</div>
+                  <div style={{fontSize:11,color:"#aaa",margin:"3px 0 8px"}}>{d.members.toLocaleString()} members</div>
+                  <div style={{height:4,background:"#f0ede8",borderRadius:2}}><div style={{height:4,background:RED,borderRadius:2,width:`${Math.round(d.members/41.2)}%`}}/></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* COMMUNITY */}
+        {page==="community" && (
+          <div>
+            <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Community groups</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:18}}>Connect with Lebanese by country, industry, or alma mater</div>
+            <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>{["All","Country","Industry","Alma Mater"].map(f=><div key={f} style={S.chip(groupFilter===f)} onClick={()=>setGroupFilter(f)}>{f}</div>)}</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+              {GROUPS.filter(g=>groupFilter==="All"||g.type===groupFilter).map(g=>(
+                <div key={g.name} style={{...S.card,cursor:"pointer",marginBottom:0}} onClick={()=>notify(`Joined "${g.name}"! 🎉`)}>
+                  <div style={{fontSize:26,marginBottom:8}}>{g.icon}</div>
+                  <div style={{fontWeight:700,fontSize:14,marginBottom:3}}>{g.name}</div>
+                  <div style={{fontSize:12,color:"#aaa",marginBottom:10}}>{g.members.toLocaleString()} members</div>
+                  <span style={{fontSize:10,padding:"3px 8px",borderRadius:10,background:g.type==="Country"?"#FFEBEE":g.type==="Industry"?"#E3F2FD":"#E8F5E9",color:g.type==="Country"?RED:g.type==="Industry"?"#1565C0":CEDAR,fontWeight:600}}>{g.type}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* MESSAGES */}
+        {page==="messages" && (
+          <div>
+            <div style={{fontSize:22,fontWeight:800,marginBottom:18}}>Messages</div>
+            {!myProfile ? (
+              <div style={{...S.card,textAlign:"center",padding:40}}>Create a profile and connect with people to start messaging.</div>
+            ) : (
+            <div style={{display:"flex",border:"1px solid #f0ede8",borderRadius:12,overflow:"hidden",background:"#fff",height:520}}>
+              <div style={{width:190,borderRight:"1px solid #f0ede8",overflowY:"auto",flexShrink:0}}>
+                <div style={{padding:"10px 12px 8px",fontSize:10,fontWeight:700,color:"#aaa",textTransform:"uppercase",borderBottom:"1px solid #f0ede8"}}>Your connections</div>
+                {chatList.length===0 && <div style={{padding:14,fontSize:12,color:"#bbb"}}>Connect with people first to message them.</div>}
+                {chatList.map(p=>(
+                  <div key={p.id} style={{padding:"10px 12px",cursor:"pointer",background:activeChat===p.id?"#FFF5F5":"transparent",borderLeft:`3px solid ${activeChat===p.id?RED:"transparent"}`,opacity:myBlocks.includes(p.id)?.5:1}} onClick={()=>openChat(p.id)}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <Avatar initials={p.initials} color={p.color} bg={p.bg} size={30} photoUrl={p.photo_url}/>
+                      <div style={{fontSize:12,fontWeight:700,flex:1}}>{p.name.split(" ")[0]}{myBlocks.includes(p.id)?" 🚫":""}</div>
+                      {unreadFrom[p.id] > 0 && <span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,borderRadius:10,padding:"1px 6px"}}>{unreadFrom[p.id]}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+                {(()=>{
+                  const p = profiles.find(x=>x.id===activeChat);
+                  if(!p) return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#bbb"}}>Select a conversation</div>;
+                  const isBlocked = myBlocks.includes(p.id);
+                  return <>
+                    <div style={{padding:"12px 16px",borderBottom:"1px solid #f0ede8",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10}}><Avatar initials={p.initials} color={p.color} bg={p.bg} size={32} photoUrl={p.photo_url}/><div style={{fontWeight:700,fontSize:13}}>{p.name}</div></div>
+                      <div style={{display:"flex",gap:6}}>
+                        <button style={{...S.btn(false),padding:"5px 10px",fontSize:11}} onClick={()=>setShowReportModal(p.id)}>⚠️ Report</button>
+                        <button style={{...S.btn(isBlocked,true),padding:"5px 10px",fontSize:11}} onClick={()=>toggleBlock(p.id)}>{isBlocked?"Unblock":"🚫 Block"}</button>
+                      </div>
+                    </div>
+                    {moderationWarning && <div style={{margin:"10px 14px 0",padding:"8px 12px",background:"#FFF3E0",border:"1px solid #FFE0B2",borderRadius:8,fontSize:12,color:"#E65100"}}>⚠️ {moderationWarning}</div>}
+                    {isBlocked ? (
+                      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#bbb",fontSize:13,padding:20,textAlign:"center"}}>You've blocked this user.</div>
+                    ) : (
+                    <div style={{flex:1,padding:14,overflowY:"auto",display:"flex",flexDirection:"column",gap:8}}>
+                      {messages.map((m,i)=>(
+                        <div key={i} style={{alignSelf:m.from_id===myProfile.id?"flex-end":"flex-start",maxWidth:"72%",background:m.from_id===myProfile.id?"#FFEBEE":"#f8f6f2",border:`1px solid ${m.from_id===myProfile.id?"#f5c6c6":"#eee"}`,borderRadius:10,padding:"8px 13px",fontSize:13,color:m.from_id===myProfile.id?RED:"#333"}}>{m.text}</div>
+                      ))}
+                      <div ref={messagesEndRef}/>
+                    </div>
+                    )}
+                    {!isBlocked && (
+                    <div style={{padding:10,borderTop:"1px solid #f0ede8",display:"flex",gap:8}}>
+                      <input style={S.input} placeholder="Write a message…" value={msgInput} onChange={e=>setMsgInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") sendMessage();}}/>
+                      <button style={{...S.btn(true),whiteSpace:"nowrap"}} onClick={sendMessage}>Send</button>
+                    </div>
+                    )}
+                  </>;
+                })()}
+              </div>
+            </div>
+            )}
+          </div>
+        )}
+
+        {/* MY PROFILE */}
+        {page==="myprofile" && (
+          <div style={{maxWidth:580}}>
+            <div style={{fontSize:22,fontWeight:800,marginBottom:18}}>My profile</div>
+            {!session ? (
+              <div style={{...S.card,textAlign:"center",padding:50}}>
+                <div style={{fontSize:48,marginBottom:12}}>🌲</div>
+                <div style={{fontSize:17,fontWeight:700,marginBottom:8}}>Join My Lebanese Network</div>
+                <div style={{fontSize:13,color:"#888",marginBottom:24}}>Create an account to build your profile</div>
+                <button style={{...S.btn(true),padding:"11px 28px",fontSize:14}} onClick={()=>setShowAuth(true)}>Log in / Sign up</button>
+              </div>
+            ) : !myProfile ? (
+              <div style={{...S.card,textAlign:"center",padding:50}}>
+                <div style={{fontSize:48,marginBottom:12}}>👋</div>
+                <div style={{fontSize:17,fontWeight:700,marginBottom:8}}>Almost there!</div>
+                <div style={{fontSize:13,color:"#888",marginBottom:24}}>You're logged in — now create your profile</div>
+                <button style={{...S.btn(true),padding:"11px 28px",fontSize:14}} onClick={()=>setShowCreateProfile(true)}>Create my profile</button>
+              </div>
+            ) : (
+              <>
+                <div style={S.card}>
+                  <div style={{display:"flex",gap:16,alignItems:"flex-start",flexWrap:"wrap"}}>
+                    <Avatar initials={myProfile.initials} color={myProfile.color} bg={myProfile.bg} size={64} photoUrl={myProfile.photo_url}/>
+                    <div style={{flex:1,minWidth:200}}>
+                      <div style={{fontSize:19,fontWeight:800,marginBottom:2}}>{myProfile.name}</div>
+                      <div style={{fontSize:13,color:"#888",marginBottom:6}}>{[myProfile.role,myProfile.company].filter(Boolean).join(" · ")}</div>
+                      {(myProfile.city || myProfile.country) && (
+                        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#E3F2FD",border:"1px solid #BBDEFB",borderRadius:20,padding:"5px 12px",marginBottom:10,fontSize:13,fontWeight:700,color:"#0D47A1"}}>
+                          📍 Currently living in {[myProfile.city,myProfile.country].filter(Boolean).join(", ")}
+                        </div>
+                      )}
+                      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+                        {myProfile.lived_lebanon && <Badge color={CEDAR} bg="#E8F5E9">🌲 Lived in Lebanon</Badge>}
+                        {myProfile.languages?.map(l=><Badge key={l} color="#555" bg="#f8f8f8">{l}</Badge>)}
+                      </div>
+                      <button style={S.btn(false)} onClick={()=>{const parts=myProfile.name.split(" ");setEditForm({...myProfile,firstName:parts[0]||"",lastName:parts.slice(1).join(" ")||"",languages:myProfile.languages?.join(", ")||""});setShowEditProfile(true);}}>✏️ Edit profile</button>
+                    </div>
+                  </div>
+                  {myProfile.bio && <div style={{marginTop:14,fontSize:13,color:"#555",lineHeight:1.75,borderTop:"1px solid #f5f0eb",paddingTop:12}}>{myProfile.bio}</div>}
+                </div>
+                <div style={S.card}>
+                  <SectionLabel>Your stats</SectionLabel>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+                    {[["Connections",myConnections.length],["Endorsed",myEndorsements.length],["Members",profiles.length]].map(([l,v])=>(
+                      <div key={l} style={{background:"#faf8f5",borderRadius:8,padding:"12px 10px",textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:RED}}>{v}</div><div style={{fontSize:11,color:"#aaa",marginTop:2}}>{l}</div></div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* AUTH MODAL */}
+      {showAuth && <AuthScreen onClose={()=>setShowAuth(false)} onAuthed={()=>{setShowAuth(false);setShowCreateProfile(true);}} />}
+
+      {/* CREATE PROFILE MODAL */}
+      {showCreateProfile && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
+          <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:480,maxHeight:"92vh",overflowY:"auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <div style={{fontSize:18,fontWeight:800,color:RED}}>🌲 Create your profile</div>
+              <button style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#bbb"}} onClick={()=>setShowCreateProfile(false)}>✕</button>
+            </div>
+            <div style={{display:"grid",gap:12}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,marginBottom:6}}>
+                {photoPreview ? (
+                  <img src={photoPreview} alt="preview" style={{width:80,height:80,borderRadius:"50%",objectFit:"cover",border:`3px solid ${RED}30`}}/>
+                ) : (
+                  <div style={{width:80,height:80,borderRadius:"50%",background:"#f5f0ea",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,color:"#ccc"}}>📷</div>
+                )}
+                <label style={{...S.btn(false),cursor:"pointer",fontSize:12}}>
+                  {uploadingPhoto ? "Uploading…" : "Choose photo"}
+                  <input type="file" accept="image/*" style={{display:"none"}} onChange={handlePhotoSelect}/>
+                </label>
+              </div>
+              {[["First name *","firstName","text"],["Last name *","lastName","text"],["Role / job title","role","text"],["Company","company","text"],["Country of residence","country","text"],["City","city","text"]].map(([label,key,type])=>(
+                <div key={key}><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>{label}</div><input style={S.input} type={type} value={form[key]} onChange={e=>setForm(prev=>({...prev,[key]:e.target.value}))}/></div>
+              ))}
+              <div><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Languages (comma-separated)</div><input style={S.input} value={form.languages} onChange={e=>setForm(prev=>({...prev,languages:e.target.value}))}/></div>
+              <div><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Industry</div><select style={S.input} value={form.industry} onChange={e=>setForm(prev=>({...prev,industry:e.target.value}))}>{INDUSTRIES.slice(1).map(i=><option key={i}>{i}</option>)}</select></div>
+              <div><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Bio</div><textarea style={{...S.input,height:80,resize:"vertical"}} value={form.bio} onChange={e=>setForm(prev=>({...prev,bio:e.target.value}))}/></div>
+              <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:13,color:"#555"}}><input type="checkbox" checked={form.livedLebanon} onChange={e=>setForm(prev=>({...prev,livedLebanon:e.target.checked}))} style={{width:16,height:16}}/>I have lived in Lebanon</label>
+              <button style={{...S.btn(true),width:"100%",padding:"12px 0",fontSize:14}} onClick={handleCreateProfile}>Create my profile →</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT PROFILE MODAL */}
+      {showEditProfile && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
+          <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:480,maxHeight:"92vh",overflowY:"auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <div style={{fontSize:18,fontWeight:800,color:RED}}>✏️ Edit profile</div>
+              <button style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#bbb"}} onClick={()=>setShowEditProfile(false)}>✕</button>
+            </div>
+            <div style={{display:"grid",gap:12}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,marginBottom:6}}>
+                <Avatar initials={myProfile?.initials} color={myProfile?.color} bg={myProfile?.bg} size={80} photoUrl={myProfile?.photo_url}/>
+                <label style={{...S.btn(false),cursor:"pointer",fontSize:12}}>
+                  {uploadingPhoto ? "Uploading…" : "Change photo"}
+                  <input type="file" accept="image/*" style={{display:"none"}} onChange={handleEditPhotoUpload}/>
+                </label>
+              </div>
+              {[["First name *","firstName","text"],["Last name *","lastName","text"],["Role","role","text"],["Company","company","text"],["Country","country","text"],["City","city","text"],["Languages (comma-separated)","languages","text"]].map(([label,key,type])=>(
+                <div key={key}><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>{label}</div><input style={S.input} type={type} value={editForm[key]||""} onChange={e=>setEditForm(prev=>({...prev,[key]:e.target.value}))}/></div>
+              ))}
+              <div><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Industry</div><select style={S.input} value={editForm.industry||""} onChange={e=>setEditForm(prev=>({...prev,industry:e.target.value}))}>{INDUSTRIES.slice(1).map(i=><option key={i}>{i}</option>)}</select></div>
+              <div><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Bio</div><textarea style={{...S.input,height:80,resize:"vertical"}} value={editForm.bio||""} onChange={e=>setEditForm(prev=>({...prev,bio:e.target.value}))}/></div>
+              <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:13,color:"#555"}}><input type="checkbox" checked={editForm.livedLebanon ?? editForm.lived_lebanon ?? false} onChange={e=>setEditForm(prev=>({...prev,livedLebanon:e.target.checked}))} style={{width:16,height:16}}/>I have lived in Lebanon</label>
+              <div style={{display:"flex",gap:8}}>
+                <button style={{...S.btn(true),flex:1,padding:"11px 0",fontSize:14}} onClick={handleSaveEdit}>Save changes</button>
+                <button style={{...S.btn(false,true),padding:"11px 16px",fontSize:14}} onClick={handleDeleteProfile}>Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REPORT MODAL */}
+      {showReportModal && (
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
+          <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420}}>
+            <div style={{fontSize:17,fontWeight:800,marginBottom:6}}>⚠️ Report this user</div>
+            <div style={{fontSize:13,color:"#888",marginBottom:18}}>Help us keep LebConnect safe.</div>
+            <div style={{display:"grid",gap:8}}>
+              {["Harassment or abusive language","Spam or scam","Fake profile / impersonation","Inappropriate content","Other"].map(reason=>(
+                <button key={reason} style={{...S.btn(false),textAlign:"left",padding:"10px 14px"}} onClick={()=>reportUser(showReportModal,reason)}>{reason}</button>
+              ))}
+            </div>
+            <button style={{...S.btn(false),width:"100%",marginTop:14}} onClick={()=>setShowReportModal(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App/>);
+</script>
+</body>
+</html>
