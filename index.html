@@ -196,7 +196,7 @@ function HomePage({onEnter,onSignup}){
           <button className="home-btn-secondary" onClick={onSignup}>Log in / Join</button>
         </div>
         <div className="home-stats">
-          {[["🌍","35+ countries"],["👥","Growing community"],["🌲","Lebanese roots"],["❤️","All walks of life"]].map(([ic,lb])=>(
+          {[["🌍","35+ countries"],["👥","Growing community"],["🌲","Lebanese roots"],["🤝","For every Lebanese"]].map(([ic,lb])=>(
             <div key={lb} className="home-stat"><div style={{fontSize:22}}>{ic}</div><div className="home-stat-label">{lb}</div></div>
           ))}
         </div>
@@ -282,6 +282,7 @@ function App(){
   const [showContact,setShowContact]=useState(null);
   const [showReport,setShowReport]=useState(null);
   const [showConnections,setShowConnections]=useState(false);
+  const [showEndorsed,setShowEndorsed]=useState(false);
   const [connections,setConnections]=useState([]);
   const [endorsements,setEndorsements]=useState([]);
   const [blocks,setBlocks]=useState([]);
@@ -551,7 +552,7 @@ function App(){
         <div className="logo-box">
           <div className="logo-name">🌲 MLN</div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:3}}>
-            {[["all","🌐","World"],["pro","💼","Pro"],["social","❤️","Social"]].map(([v,ic,lb])=>(
+            {[["all","🌐","World"],["pro","💼","Pro"],["social","🤝","Social"]].map(([v,ic,lb])=>(
               <div key={v} onClick={()=>setDiscoverMode(v)} style={{padding:"5px 4px",borderRadius:6,textAlign:"center",cursor:"pointer",background:discoverMode===v?(v==="all"?"#FEF2F2":v==="pro"?"#EFF6FF":"#F0FDF4"):"transparent",border:`1px solid ${discoverMode===v?(v==="all"?"#FECACA":v==="pro"?"#BFDBFE":"#BBF7D0"):"transparent"}`,transition:"all .15s"}}>
                 <div style={{fontSize:12}}>{ic}</div>
                 <div style={{fontSize:9,fontWeight:700,color:discoverMode===v?(v==="all"?"#B91C1C":v==="pro"?"#1D4ED8":"#166534"):"var(--text-3)",marginTop:1}}>{lb}</div>
@@ -715,17 +716,20 @@ function App(){
 
         {page==="community"&&(
           <div className="page">
-            <div className="page-title">Community</div>
-            <div className="page-sub">Groups by country, industry, and alma mater</div>
-            <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
-              {["All","Country","Industry","Alma Mater"].map(f=><div key={f} className={`chip${groupFilter===f?" on":""}`} onClick={()=>setGroupFilter(f)}>{f}</div>)}
+            <div className="page-title">Communities</div>
+            <div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:"var(--r)",padding:"20px 24px",marginBottom:24,textAlign:"center"}}>
+              <div style={{fontSize:28,marginBottom:8}}>🌲</div>
+              <div style={{fontWeight:800,fontSize:18,marginBottom:6,letterSpacing:"-.5px"}}>Communities are coming</div>
+              <div style={{fontSize:13,color:"var(--text-2)",marginBottom:16,maxWidth:420,margin:"0 auto 16px",lineHeight:1.7}}>Get your network involved so we can launch the first Lebanese communities — by city, industry, and shared interests.</div>
+              <button className="btn btn-primary" onClick={()=>setPage("feedback")}>Let us know what community you want →</button>
             </div>
+            <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:12}}>What's coming</div>
             <div className="group-grid">
               {GROUPS.filter(g=>groupFilter==="All"||g.type===groupFilter).map(g=>(
-                <div key={g.name} className="group-card" onClick={()=>notify(`Joined "${g.name}"! 🎉`)}>
+                <div key={g.name} className="group-card" style={{opacity:.6,cursor:"default"}}>
                   <div style={{fontSize:24,marginBottom:8}}>{g.icon}</div>
                   <div style={{fontWeight:700,fontSize:14,marginBottom:3}}>{g.name}</div>
-                  <div style={{fontSize:12,color:"var(--text-3)",marginBottom:10}}>{g.members.toLocaleString()} members</div>
+                  <div style={{fontSize:12,color:"var(--text-3)",marginBottom:10}}>{g.members.toLocaleString()} potential members</div>
                   <span className={`badge badge-${g.type==="Country"?"red":g.type==="Industry"?"blue":"cedar"}`}>{g.type}</span>
                 </div>
               ))}
@@ -824,18 +828,37 @@ function App(){
                 </div>
                 <div className="card">
                   <div className="section-label">Stats</div>
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                     <div style={{background:"var(--stone)",borderRadius:"var(--r-sm)",padding:"12px 10px",textAlign:"center",cursor:"pointer",border:showConnections?"1px solid var(--red-mid)":"1px solid transparent"}} onClick={()=>setShowConnections(!showConnections)}>
                       <div style={{fontSize:22,fontWeight:800,color:"var(--red)"}}>{myConns.length}</div>
                       <div style={{fontSize:10,color:"var(--text-3)",marginTop:2,textTransform:"uppercase",letterSpacing:".05em"}}>Connections {showConnections?"▲":"▼"}</div>
                     </div>
-                    {[["Endorsed",myEndorsed.length,"var(--cedar)"],["Members",profiles.length,"#1D4ED8"]].map(([l,v,c])=>(
-                      <div key={l} style={{background:"var(--stone)",borderRadius:"var(--r-sm)",padding:"12px 10px",textAlign:"center"}}>
-                        <div style={{fontSize:22,fontWeight:800,color:c}}>{v}</div>
-                        <div style={{fontSize:10,color:"var(--text-3)",marginTop:2,textTransform:"uppercase",letterSpacing:".05em"}}>{l}</div>
-                      </div>
-                    ))}
+                    <div style={{background:"var(--stone)",borderRadius:"var(--r-sm)",padding:"12px 10px",textAlign:"center",cursor:"pointer",border:showEndorsed?"1px solid #BBF7D0":"1px solid transparent"}} onClick={()=>setShowEndorsed(!showEndorsed)}>
+                      <div style={{fontSize:22,fontWeight:800,color:"var(--cedar)"}}>{myEndorsed.length}</div>
+                      <div style={{fontSize:10,color:"var(--text-3)",marginTop:2,textTransform:"uppercase",letterSpacing:".05em"}}>Endorsed {showEndorsed?"▲":"▼"}</div>
+                    </div>
                   </div>
+                  {showEndorsed&&(
+                    <div style={{marginTop:12,borderTop:"1px solid var(--border)",paddingTop:12}}>
+                      <div className="section-label">People you endorsed</div>
+                      {myEndorsed.length===0&&<div style={{fontSize:13,color:"var(--text-3)"}}>You haven't endorsed anyone yet.</div>}
+                      {myEndorsed.map(id=>{
+                        const p=profiles.find(x=>x.id===id);if(!p)return null;
+                        return(
+                          <div key={id} className="conn-row">
+                            <div style={{cursor:"pointer"}} onClick={()=>{setViewProfile(p);setPage("discover");setShowEndorsed(false);}}>
+                              <Av initials={p.initials} color={p.color} bg={p.bg} size={36} photoUrl={p.photo_url}/>
+                            </div>
+                            <div style={{flex:1,cursor:"pointer",minWidth:0}} onClick={()=>{setViewProfile(p);setPage("discover");setShowEndorsed(false);}}>
+                              <div style={{fontWeight:700,fontSize:13,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</div>
+                              <div style={{fontSize:11,color:"var(--text-3)"}}>{[p.city,p.country].filter(Boolean).join(", ")}</div>
+                            </div>
+                            <button className="btn btn-sm btn-danger" onClick={()=>toggleEndorse(p.id)}>Remove</button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   {showConnections&&(
                     <div style={{marginTop:12,borderTop:"1px solid var(--border)",paddingTop:12}}>
                       <div className="section-label">Your connections</div>
