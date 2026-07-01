@@ -391,7 +391,7 @@ function App(){
   const [photoFile,setPhotoFile]=useState(null);
   const [photoPreview,setPhotoPreview]=useState(null);
   const [uploading,setUploading]=useState(false);
-  const [form,setForm]=useState({firstName:"",lastName:"",role:"",company:"",country:"",city:"",livedLebanon:false,bio:"",languages:"",industry:"Technology",shareEmail:false,sharePhone:false,phone:""});
+  const [form,setForm]=useState({firstName:"",lastName:"",role:"",company:"",country:"",city:"",livedLebanon:false,bio:"",languages:"",industry:"Technology",shareEmail:false,sharePhone:false,phone:"",visibleIn:["world","pro","social"],sameProfileBoth:true,socialBio:"",socialInterests:"",socialLookingFor:""});
   const [editForm,setEditForm]=useState({});
   const [discoverMode, setDiscoverMode] = useState("all"); // all | pro | social
   const [showConnections, setShowConnections] = useState(false);
@@ -521,7 +521,7 @@ function App(){
     const initials=(form.firstName[0]+form.lastName[0]).toUpperCase();
     let photo_url=null;
     if(photoFile)photo_url=await uploadPhoto(photoFile,session.user.id);
-    const payload={user_id:session.user.id,name:fullName,role:form.role,company:form.company,country:form.country,city:form.city,lived_lebanon:form.livedLebanon,bio:form.bio,languages:form.languages.split(",").map(l=>l.trim()).filter(Boolean),industry:form.industry,email:session.user.email,initials,color:pair.c,bg:pair.b,photo_url,share_email:form.shareEmail,share_phone:form.sharePhone,phone:form.phone};
+    const payload={user_id:session.user.id,name:fullName,role:form.role,company:form.company,country:form.country,city:form.city,lived_lebanon:form.livedLebanon,bio:form.bio,languages:form.languages.split(",").map(l=>l.trim()).filter(Boolean),industry:form.industry,email:session.user.email,initials,color:pair.c,bg:pair.b,photo_url,share_email:form.shareEmail,share_phone:form.sharePhone,phone:form.phone,visible_in:form.visibleIn,same_profile_both:form.sameProfileBoth,social_bio:form.sameProfileBoth?form.bio:form.socialBio,social_interests:form.socialInterests.split(",").map(s=>s.trim()).filter(Boolean),social_looking_for:form.socialLookingFor};
     const{data,error}=await supabase.from("profiles").insert(payload).select().single();
     if(error){notify("Error: "+error.message);return;}
     setMyProfile(data);setProfiles(prev=>[data,...prev]);
@@ -533,7 +533,7 @@ function App(){
   async function saveEdit(){
     if(!editForm.firstName?.trim()||!editForm.lastName?.trim()||!myProfile)return;
     const fullName=`${editForm.firstName.trim()} ${editForm.lastName.trim()}`;
-    const payload={name:fullName,role:editForm.role,company:editForm.company,country:editForm.country,city:editForm.city,lived_lebanon:editForm.livedLebanon??editForm.lived_lebanon,bio:editForm.bio,languages:typeof editForm.languages==="string"?editForm.languages.split(",").map(l=>l.trim()).filter(Boolean):editForm.languages,industry:editForm.industry,share_email:editForm.share_email||false,share_phone:editForm.share_phone||false,phone:editForm.phone||""};
+    const payload={name:fullName,role:editForm.role,company:editForm.company,country:editForm.country,city:editForm.city,lived_lebanon:editForm.livedLebanon??editForm.lived_lebanon,bio:editForm.bio,languages:typeof editForm.languages==="string"?editForm.languages.split(",").map(l=>l.trim()).filter(Boolean):editForm.languages,industry:editForm.industry,share_email:editForm.share_email||false,share_phone:editForm.share_phone||false,phone:editForm.phone||"",visible_in:editForm.visibleIn||["world","pro","social"],same_profile_both:editForm.sameProfileBoth??true,social_bio:editForm.sameProfileBoth?editForm.bio:editForm.social_bio,social_interests:typeof editForm.socialInterests==="string"?editForm.socialInterests.split(",").map(s=>s.trim()).filter(Boolean):editForm.social_interests,social_looking_for:editForm.social_looking_for};
     const{data,error}=await supabase.from("profiles").update(payload).eq("id",myProfile.id).select().single();
     if(error){notify("Error: "+error.message);return;}
     setMyProfile(data);setProfiles(prev=>prev.map(p=>p.id===data.id?data:p));
@@ -616,16 +616,25 @@ function App(){
   }
 
   // derived
-  const myConns=connections.filter(c=>(c.user_id===myProfile?.id||c.connected_to===myProfile?.id)&&c.status==="accepted").map(c=>c.user_id===myProfile?.id?c.connected_to:c.user_id);
-  const myPending=connections.filter(c=>c.user_id===myProfile?.id&&c.status==="pending").map(c=>c.connected_to);
-  const myReceived=connections.filter(c=>c.connected_to===myProfile?.id&&c.status==="pending");
-  const myEndorsed=endorsements.filter(e=>e.user_id===myProfile?.id).map(e=>e.endorsed_id);
-  const myBlocks=blocks.filter(b=>b.blocker_id===myProfile?.id).map(b=>b.blocked_id);
-  const chatList=profiles.filter(p=>myConns.includes(p.id));
-  const totalUnread=Object.values(unread).reduce((a,b)=>a+b,0);
+  const myConns=connections.filter(c=>
+    (c.user_id===myProfile?.id||c.connected_to===myProfile?.id)&&c.status==="accepted"
+  ).map(c=>c.user_id===myProfile?.id?c.connected_to:c.user_id);
 
-  function connLabel(id){if(myConns.includes(id))return"✓ Connected";if(myPending.includes(id))return"⏳ Pending";return"Send request";}
-  function connActive(id){return myConns.includes(id)||myPending.includes(id);}
+  const myPending=connections.filter(c=>
+    c.user_id===myProfile?.id&&c.status==="pending"
+  ).map(c=>c.connected_to);
+
+  const pendingFromOther=connections.filter(c=>
+    c.connected_to===myProfile?.id&&c.status==="pending"
+  ).map(c=>c.user_id);
+
+  function connLabel(id){
+    if(myConns.includes(id)) return "✓ Connected";
+    if(myPending.includes(id)) return "⏳ Pending";
+    if(pendingFromOther.includes(id)) return "📨 Accept?";
+    return "Send request";
+  }
+  function connActive(id){return myConns.includes(id)||myPending.includes(id)||pendingFromOther.includes(id);}
 
   const filtered=profiles.filter(p=>{
     const q=searchQ.toLowerCase();
@@ -633,13 +642,15 @@ function App(){
     const mc=filterCountry==="All countries"||p.country===filterCountry;
     const mi=filterIndustry==="All industries"||p.industry===filterIndustry;
     const ml=!filterLived||p.lived_lebanon;
-    return mq&&mc&&mi&&ml&&(!myProfile||p.id!==myProfile.id);
+    const notMe=!myProfile||p.id!==myProfile.id;
+    const modeKey = discoverMode==="all"?"world":discoverMode;
+    const mv = !p.visible_in || p.visible_in.length===0 || p.visible_in.includes(modeKey) || p.visible_in.includes("world");
+    return mq&&mc&&mi&&ml&&notMe&&mv;
   });
 
   const navItems=[
     {id:"discover",icon:"🔍",label:"Discover"},
     {id:"requests",icon:"📨",label:"Requests",badge:myReceived.length},
-    {id:"map",icon:"🗺️",label:"World map"},
     {id:"community",icon:"👥",label:"Community"},
     {id:"messages",icon:"✉️",label:"Messages",badge:totalUnread},
     {id:"myprofile",icon:"🌲",label:"My profile"},
@@ -801,7 +812,18 @@ function App(){
                 </div>
               </div>
             </div>
-            {viewProfile.bio&&<div className="card"><div className="section-label">About</div><div style={{fontSize:13,color:"var(--text-2)",lineHeight:1.75}}>{viewProfile.bio}</div></div>}
+            {(() => {
+              const isSocial = discoverMode==="social" && !viewProfile.same_profile_both;
+              const bio = isSocial ? viewProfile.social_bio : viewProfile.bio;
+              const interests = isSocial ? viewProfile.social_interests : null;
+              const lookingFor = isSocial ? viewProfile.social_looking_for : null;
+              return <>
+                {bio&&<div className="card"><div className="section-label">About</div><div style={{fontSize:13,color:"var(--text-2)",lineHeight:1.75}}>{bio}</div></div>}
+                {interests?.length>0&&<div className="card"><div className="section-label">Interests</div><div style={{display:"flex",flexWrap:"wrap",gap:6}}>{interests.map(i=><span key={i} className="badge badge-gray">{i}</span>)}</div></div>}
+                {lookingFor&&<div className="card"><div className="section-label">Looking for</div><div style={{fontSize:13,color:"var(--text-2)",lineHeight:1.75}}>{lookingFor}</div></div>}
+                {!isSocial&&viewProfile.industry&&<div className="card"><div className="section-label">Industry</div><div style={{fontSize:13,color:"var(--text-2)"}}>{viewProfile.industry}</div></div>}
+              </>;
+            })()}
             {/* moderation */}
             <div style={{display:"flex",gap:8,marginTop:8}}>
               <button className="btn btn-sm" onClick={()=>setShowReport(viewProfile.id)}>⚠️ Report</button>
@@ -983,7 +1005,7 @@ function App(){
                         {myProfile.lived_lebanon&&<Badge variant="cedar">🌲 Lived in Lebanon</Badge>}
                         {myProfile.languages?.map(l=><Badge key={l} variant="gray">{l}</Badge>)}
                       </div>
-                      <button className="btn btn-sm" onClick={()=>{const parts=myProfile.name.split(" ");setEditForm({...myProfile,firstName:parts[0]||"",lastName:parts.slice(1).join(" ")||"",languages:myProfile.languages?.join(", ")||""});setShowEdit(true);}}>✏️ Edit profile</button>
+              <button className="btn btn-sm" onClick={()=>{const parts=myProfile.name.split(" ");setEditForm({...myProfile,firstName:parts[0]||"",lastName:parts.slice(1).join(" ")||"",languages:myProfile.languages?.join(", ")||"",socialInterests:myProfile.social_interests?.join(", ")||"",visibleIn:myProfile.visible_in||["world","pro","social"],sameProfileBoth:myProfile.same_profile_both??true});setShowEdit(true);}}>✏️ Edit profile</button>
                     </div>
                   </div>
                   {myProfile.bio&&<div style={{marginTop:14,fontSize:13,color:"var(--text-2)",lineHeight:1.75,borderTop:"1px solid var(--border)",paddingTop:14}}>{myProfile.bio}</div>}
@@ -1083,7 +1105,26 @@ function App(){
             <div className="form-row"><div className="form-label">Languages <span style={{color:"var(--text-3)",fontWeight:400}}>comma-separated</span></div><input className="inp" placeholder="Arabic, French, English" value={form.languages} onChange={e=>setForm(p=>({...p,languages:e.target.value}))}/></div>
             <div className="form-row"><div className="form-label">Bio</div><textarea className="inp" style={{height:72,resize:"vertical"}} placeholder="Tell the community about yourself…" value={form.bio} onChange={e=>setForm(p=>({...p,bio:e.target.value}))}/></div>
             <div className="divider"/>
-            <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)",marginBottom:10,textTransform:"uppercase",letterSpacing:".05em"}}>Contact info (shown only to connections)</div>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text-2)",marginBottom:10,textTransform:"uppercase",letterSpacing:".05em"}}>Where do you want to be seen?</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+              {[["world","🌐 World"],["pro","💼 Pro"],["social","❤️ Social"]].map(([v,l])=>{
+                const on=form.visibleIn.includes(v);
+                return <div key={v} className={`chip${on?" on":""}`} onClick={()=>setForm(p=>({...p,visibleIn:on?p.visibleIn.filter(x=>x!==v):[...p.visibleIn,v]}))}>
+                  {l} {on?"✓":""}
+                </div>;
+              })}
+            </div>
+            <div className="divider"/>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text-2)",marginBottom:10,textTransform:"uppercase",letterSpacing:".05em"}}>Social profile</div>
+            <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,cursor:"pointer",fontSize:13}}>
+              <input type="checkbox" checked={form.sameProfileBoth} onChange={e=>setForm(p=>({...p,sameProfileBoth:e.target.checked}))}/> Use same profile for Pro and Social
+            </label>
+            {!form.sameProfileBoth&&<>
+              <div className="form-row"><div className="form-label">Social bio</div><textarea className="inp" style={{height:72,resize:"vertical"}} placeholder="Who are you beyond work? Hobbies, passions, what makes you Lebanese..." value={form.socialBio} onChange={e=>setForm(p=>({...p,socialBio:e.target.value}))}/></div>
+              <div className="form-row"><div className="form-label">Interests (comma-separated)</div><input className="inp" placeholder="Hiking, food, music, travel..." value={form.socialInterests} onChange={e=>setForm(p=>({...p,socialInterests:e.target.value}))}/></div>
+              <div className="form-row"><div className="form-label">What are you looking for?</div><input className="inp" placeholder="Friendships, events, recommendations..." value={form.socialLookingFor} onChange={e=>setForm(p=>({...p,socialLookingFor:e.target.value}))}/></div>
+            </>}
+            <div className="divider"/>
             <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer",fontSize:13}}>
               <input type="checkbox" checked={form.shareEmail} onChange={e=>setForm(p=>({...p,shareEmail:e.target.checked}))}/> Share my email address
             </label>
@@ -1124,7 +1165,27 @@ function App(){
             <div className="form-row"><div className="form-label">Languages</div><input className="inp" value={editForm.languages||""} onChange={e=>setEditForm(p=>({...p,languages:e.target.value}))}/></div>
             <div className="form-row"><div className="form-label">Bio</div><textarea className="inp" style={{height:72,resize:"vertical"}} value={editForm.bio||""} onChange={e=>setEditForm(p=>({...p,bio:e.target.value}))}/></div>
             <div className="divider"/>
-            <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)",marginBottom:10,textTransform:"uppercase",letterSpacing:".05em"}}>Contact info sharing</div>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text-2)",marginBottom:10,textTransform:"uppercase",letterSpacing:".05em"}}>Where do you want to be seen?</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+              {[["world","🌐 World"],["pro","💼 Pro"],["social","❤️ Social"]].map(([v,l])=>{
+                const vi=editForm.visibleIn||["world","pro","social"];
+                const on=vi.includes(v);
+                return <div key={v} className={`chip${on?" on":""}`} onClick={()=>setEditForm(p=>({...p,visibleIn:on?vi.filter(x=>x!==v):[...vi,v]}))}>
+                  {l} {on?"✓":""}
+                </div>;
+              })}
+            </div>
+            <div className="divider"/>
+            <div style={{fontSize:12,fontWeight:700,color:"var(--text-2)",marginBottom:10,textTransform:"uppercase",letterSpacing:".05em"}}>Social profile</div>
+            <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:12,cursor:"pointer",fontSize:13}}>
+              <input type="checkbox" checked={editForm.sameProfileBoth??true} onChange={e=>setEditForm(p=>({...p,sameProfileBoth:e.target.checked}))}/> Use same profile for Pro and Social
+            </label>
+            {!(editForm.sameProfileBoth??true)&&<>
+              <div className="form-row"><div className="form-label">Social bio</div><textarea className="inp" style={{height:72,resize:"vertical"}} placeholder="Who are you beyond work?" value={editForm.social_bio||""} onChange={e=>setEditForm(p=>({...p,social_bio:e.target.value}))}/></div>
+              <div className="form-row"><div className="form-label">Interests (comma-separated)</div><input className="inp" value={editForm.socialInterests||""} onChange={e=>setEditForm(p=>({...p,socialInterests:e.target.value}))}/></div>
+              <div className="form-row"><div className="form-label">Looking for</div><input className="inp" value={editForm.social_looking_for||""} onChange={e=>setEditForm(p=>({...p,social_looking_for:e.target.value}))}/></div>
+            </>}
+            <div className="divider"/>
             <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer",fontSize:13}}>
               <input type="checkbox" checked={editForm.share_email||false} onChange={e=>setEditForm(p=>({...p,share_email:e.target.checked}))}/> Share my email with connections
             </label>
