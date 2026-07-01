@@ -219,7 +219,7 @@ function rateOk(ts){const now=Date.now(),r=ts.filter(t=>now-t<60000);return{ok:r
 // ── DATA ────────────────────────
 const DIASPORA = ["France","United States","Brazil","Canada","Australia","Germany","United Kingdom","UAE","Argentina","Mexico","Ivory Coast","Nigeria","Saudi Arabia","Sweden","Senegal","Colombia","Venezuela","Chile","Belgium","Switzerland","Italy","Spain","Greece","Cyprus","Kuwait","Qatar","Bahrain","Jordan","Egypt","South Africa","New Zealand","Japan","China","Singapore","Hong Kong"];
 const COUNTRIES = ["All countries","France","United States","United Kingdom","UAE","Brazil","Canada","Germany","Australia","Lebanon","Saudi Arabia","Argentina","Mexico","Other"];
-const INDUSTRIES = ["All industries","Finance","Technology","Medicine","Architecture","Consulting","Media","Law","Education","Other"];
+const INDUSTRIES = ["All industries","Finance & Banking","Technology & Engineering","Medicine & Healthcare","Architecture & Design","Consulting & Strategy","Media & Journalism","Law & Legal","Education & Academia","Arts & Culture","Entrepreneurship","Marketing & Communications","Real Estate","Energy & Environment","Sports & Wellness","Food & Hospitality","Fashion & Luxury","Non-profit & NGO","Politics & Diplomacy","Other"];
 const COLOR_PAIRS = [{c:"#9F1239",b:"#FFF1F2"},{c:"#1D4ED8",b:"#EFF6FF"},{c:"#166534",b:"#F0FDF4"},{c:"#6D28D9",b:"#F5F3FF"},{c:"#C2410C",b:"#FFF7ED"},{c:"#0E7490",b:"#ECFEFF"},{c:"#9D174D",b:"#FDF2F8"},{c:"#1E40AF",b:"#EFF6FF"}];
 const MAP_DOTS = [{name:"France",members:2840,x:47,y:28},{name:"USA",members:4120,x:18,y:35},{name:"UAE",members:3390,x:62,y:40},{name:"Brazil",members:1750,x:26,y:60},{name:"Lebanon",members:1200,x:58,y:33},{name:"UK",members:1560,x:45,y:24},{name:"Canada",members:2100,x:15,y:25},{name:"Australia",members:950,x:82,y:68},{name:"Germany",members:820,x:50,y:26},{name:"Argentina",members:680,x:25,y:68}];
 const GROUPS = [{name:"Lebanese in France",icon:"🇫🇷",type:"Country",members:2840},{name:"Lebanese in USA",icon:"🇺🇸",type:"Country",members:4120},{name:"Lebanese in UAE",icon:"🇦🇪",type:"Country",members:3390},{name:"Lebanese in Brazil",icon:"🇧🇷",type:"Country",members:1750},{name:"Lebanese in UK",icon:"🇬🇧",type:"Country",members:1560},{name:"Lebanese in Finance",icon:"💼",type:"Industry",members:3210},{name:"Lebanese in Tech",icon:"💻",type:"Industry",members:2980},{name:"Lebanese in Medicine",icon:"🏥",type:"Industry",members:1870},{name:"AUB Alumni",icon:"🎓",type:"Alma Mater",members:6400},{name:"LAU Alumni",icon:"🎓",type:"Alma Mater",members:4100}];
@@ -377,7 +377,9 @@ function App(){
   const [uploading,setUploading]=useState(false);
   const [form,setForm]=useState({firstName:"",lastName:"",role:"",company:"",country:"",city:"",livedLebanon:false,bio:"",languages:"",industry:"Technology",shareEmail:false,sharePhone:false,phone:""});
   const [editForm,setEditForm]=useState({});
+  const [showConnections, setShowConnections] = useState(false);
   const [feedbackText,setFeedbackText]=useState("");
+  const [feedbackType,setFeedbackType]=useState("Feedback");
   const [feedbackSent,setFeedbackSent]=useState(false);
   const msgEnd=useRef(null);
 
@@ -624,7 +626,12 @@ function App(){
         onEnter={()=>{setHasSeenHome(true);setPage("discover");}}
         onSignup={()=>{setHasSeenHome(true);session?setShowCreate(true):setShowAuth(true);}}
       />
-      {showAuth&&<AuthScreen onClose={()=>setShowAuth(false)} onAuthed={()=>{setShowAuth(false);setShowCreate(true);}}/>}
+      {showAuth&&<AuthScreen onClose={()=>setShowAuth(false)} onAuthed={(user)=>{
+        setShowAuth(false);
+        const existingProfile = profiles.find(p => p.user_id === user?.id);
+        if(!existingProfile) setShowCreate(true);
+        else { setHasSeenHome(true); setPage("discover"); }
+      }}/>}
     </>
   );
 
@@ -937,35 +944,41 @@ function App(){
         {page==="feedback"&&(
           <div className="page-sm">
             <div className="page-title">Get in touch</div>
-            <div className="page-sub">We'd love to hear from you</div>
+            <div className="page-sub">Questions, feedback, or just want to say hi</div>
             <div className="card" style={{marginBottom:12}}>
-              <div className="section-label">Contact us</div>
-              <div className="contact-grid">
-                <div style={{background:"var(--stone)",borderRadius:"var(--r-sm)",padding:"14px 16px"}}>
-                  <div style={{fontSize:20,marginBottom:6}}>✉️</div>
-                  <div style={{fontWeight:600,fontSize:13,marginBottom:2}}>Email</div>
-                  <div style={{fontSize:12,color:"var(--text-2)"}}>pierre.turk@mylebanesenetwork.com</div>
-                </div>
-                <div style={{background:"var(--stone)",borderRadius:"var(--r-sm)",padding:"14px 16px"}}>
-                  <div style={{fontSize:20,marginBottom:6}}>🌐</div>
-                  <div style={{fontWeight:600,fontSize:13,marginBottom:2}}>Website</div>
-                  <div style={{fontSize:12,color:"var(--text-2)"}}>mylebanesenetwork.com</div>
-                </div>
+              <div className="section-label">Connect with me on MLN</div>
+              <div style={{fontSize:13,color:"var(--text-2)",marginBottom:14,lineHeight:1.6}}>
+                The best way to reach me is right here on the app — find my profile, send a connection request, and message me directly.
+              </div>
+              <button className="btn btn-primary" onClick={()=>{setSearchQ("Pierre Turk");setPage("discover");}}>Find Pierre Turk on MLN →</button>
+            </div>
+            <div className="card" style={{marginBottom:12}}>
+              <div className="section-label">Email</div>
+              <div style={{display:"flex",alignItems:"center",gap:12,padding:"6px 0"}}>
+                <div style={{fontSize:20}}>✉️</div>
+                <div style={{fontSize:13,fontWeight:500,color:"var(--text)"}}>pierre.turk@mylebanesenetwork.com</div>
               </div>
             </div>
             <div className="card">
-              <div className="section-label">Leave feedback</div>
+              <div className="section-label">Leave a message</div>
+              <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap"}}>
+                {["Feedback","Request","Open message"].map(t=>(
+                  <div key={t} className={`chip${feedbackType===t?" on":""}`} onClick={()=>setFeedbackType(t)}>{t}</div>
+                ))}
+              </div>
               {feedbackSent?(
                 <div style={{textAlign:"center",padding:"24px 0"}}>
                   <div style={{fontSize:32,marginBottom:8}}>🙏</div>
-                  <div style={{fontFamily:"var(--serif)",fontSize:18,fontWeight:600,marginBottom:4}}>Thank you!</div>
-                  <div style={{fontSize:13,color:"var(--text-2)"}}>Your feedback helps us improve My Lebanese Network.</div>
-                  <button className="btn btn-sm" style={{marginTop:14}} onClick={()=>{setFeedbackSent(false);setFeedbackText("");}}>Send more feedback</button>
+                  <div style={{fontFamily:"var(--serif)",fontSize:18,fontWeight:700,marginBottom:4}}>Thank you!</div>
+                  <div style={{fontSize:13,color:"var(--text-2)"}}>We'll get back to you soon.</div>
+                  <button className="btn btn-sm" style={{marginTop:14}} onClick={()=>{setFeedbackSent(false);setFeedbackText("");setFeedbackType("Feedback");}}>Send another</button>
                 </div>
               ):(
                 <>
-                  <textarea className="inp" style={{height:120,resize:"vertical",marginBottom:12}} placeholder="Tell us what you love, what's missing, or what could be better…" value={feedbackText} onChange={e=>setFeedbackText(e.target.value)}/>
-                  <button className="btn btn-primary" disabled={!feedbackText.trim()} onClick={()=>{if(feedbackText.trim()){setFeedbackSent(true);}}}>Send feedback →</button>
+                  <textarea className="inp" style={{height:100,resize:"vertical",marginBottom:12}}
+                    placeholder={feedbackType==="Feedback"?"What could be better, what do you love…":feedbackType==="Request"?"What feature or change would you like to see…":"Write your message…"}
+                    value={feedbackText} onChange={e=>setFeedbackText(e.target.value)}/>
+                  <button className="btn btn-primary" disabled={!feedbackText.trim()} onClick={()=>{if(feedbackText.trim())setFeedbackSent(true);}}>Send {feedbackType} →</button>
                 </>
               )}
             </div>
@@ -974,8 +987,11 @@ function App(){
 
       </div>
 
-      {/* ── AUTH MODAL ── */}
-      {showAuth&&<AuthScreen onClose={()=>setShowAuth(false)} onAuthed={()=>{setShowAuth(false);setShowCreate(true);}}/>}
+      {showAuth&&<AuthScreen onClose={()=>setShowAuth(false)} onAuthed={(user)=>{
+        setShowAuth(false);
+        const existing = profiles.find(p => p.user_id === user?.id);
+        if(!existing) setShowCreate(true);
+      }}/>}
 
       {/* ── CREATE PROFILE MODAL ── */}
       {showCreate&&(
