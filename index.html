@@ -458,10 +458,22 @@ function App(){
   }
 
   async function toggleEndorse(otherId){
-    if(!myProfile)return setShowAuth(true);
-    const ex=endorsements.find(e=>e.user_id===myProfile.id&&e.endorsed_id===otherId);
-    if(ex){await supabase.from("endorsements").delete().eq("id",ex.id);setEndorsements(prev=>prev.filter(e=>e.id!==ex.id));}
-    else{const{data,error}=await supabase.from("endorsements").insert({user_id:myProfile.id,endorsed_id:otherId}).select().single();if(!error){setEndorsements(prev=>[...prev,data]);notify("Endorsed! ⭐");}}
+    if(!myProfile){notify("Please log in to endorse.");return setShowAuth(true);}
+    if(!otherId){notify("Error: no profile selected.");return;}
+    try{
+      const ex=endorsements.find(e=>e.user_id===myProfile.id&&e.endorsed_id===otherId);
+      if(ex){
+        const{error}=await supabase.from("endorsements").delete().eq("id",ex.id);
+        if(error){notify("Error: "+error.message);return;}
+        setEndorsements(prev=>prev.filter(e=>e.id!==ex.id));
+        notify("Endorsement removed.");
+      }else{
+        const{data,error}=await supabase.from("endorsements").insert({user_id:myProfile.id,endorsed_id:otherId}).select().single();
+        if(error){notify("Error: "+error.message);return;}
+        setEndorsements(prev=>[...prev,data]);
+        notify("Endorsed! ⭐");
+      }
+    }catch(e){notify("Error: "+e.message);}
   }
 
   async function toggleBlock(otherId){
