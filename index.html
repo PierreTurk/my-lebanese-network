@@ -1,758 +1,757 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>MLN — My Lebanese Network</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.development.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.development.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-  window.addEventListener("error", function(e) {
-    var root = document.getElementById("root");
-    if (root && !root.hasChildNodes()) {
-      root.innerHTML = '<div style="font-family:system-ui;max-width:600px;margin:60px auto;padding:24px;background:#fff3f3;border:1px solid #f5c6c6;border-radius:12px;color:#a00;">' +
-        '<h2 style="margin-bottom:12px;">⚠️ LebConnect could not load</h2>' +
-        '<p style="margin-bottom:10px;font-size:14px;line-height:1.6;">This usually means a script library failed to load from the CDN — often caused by a restricted/corporate network blocking external scripts.</p>' +
-        '<p style="margin-bottom:10px;font-size:14px;line-height:1.6;">Try opening this file on a different network, or check with your IT team about allowing cdnjs.cloudflare.com and jsdelivr.net.</p>' +
-        '<p style="font-size:12px;color:#888;">Technical detail: ' + (e.message || "unknown error") + '</p>' +
-        '</div>';
-    }
-  });
+window.addEventListener("error",function(e){
+  var r=document.getElementById("root");
+  if(r&&!r.hasChildNodes())r.innerHTML='<div style="font-family:system-ui;max-width:560px;margin:80px auto;padding:32px;background:#fff5f5;border:1px solid #fcc;border-radius:16px;color:#900;text-align:center"><h2 style="margin-bottom:12px">MLN could not load</h2><p style="font-size:14px;line-height:1.7;color:#666">The app libraries failed to load from the CDN — this usually means a restricted network (corporate firewall). Try opening this file on a personal network or mobile hotspot.</p><p style="margin-top:12px;font-size:12px;color:#aaa">'+( e.message||"unknown error")+'</p></div>';
+});
 </script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #f8f6f2; color: #1a1a1a; }
-  input, select, textarea, button { font-family: inherit; }
-  input:focus, select:focus, textarea:focus { outline: 2px solid #C62828; outline-offset: 1px; }
-  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #f0ede8; } ::-webkit-scrollbar-thumb { background: #ddd; border-radius: 3px; }
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#B91C1C;--red-light:#FEF2F2;--red-mid:#FCA5A5;
+  --cedar:#166534;--cedar-light:#F0FDF4;
+  --warm:#7C2D12;--cream:#FDFAF7;--stone:#F5F0EB;
+  --text:#1C1917;--text-2:#78716C;--text-3:#A8A29E;
+  --border:#E7E0D9;--border-2:#D6CFC6;
+  --serif:'Cormorant Garant',Georgia,serif;
+  --sans:'Inter',system-ui,sans-serif;
+  --r:12px;--r-sm:8px;
+}
+body{font-family:var(--sans);background:var(--cream);color:var(--text);font-size:14px;-webkit-font-smoothing:antialiased}
+input,select,textarea,button{font-family:var(--sans)}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--red);outline-offset:1px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border-2);border-radius:3px}
+
+/* ── layout ── */
+.app{display:flex;min-height:100vh}
+.sidebar{width:220px;background:#fff;border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;flex-shrink:0}
+.main{flex:1;overflow-y:auto;background:var(--cream)}
+
+/* ── sidebar ── */
+.logo-box{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.logo-name{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--red);letter-spacing:-.3px;line-height:1}
+.logo-sub{font-size:10px;color:var(--text-3);margin-top:4px;letter-spacing:.08em;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 18px;font-size:13px;color:var(--text-2);cursor:pointer;border-left:2px solid transparent;transition:all .12s;position:relative}
+.nav-item:hover{color:var(--text);background:var(--stone)}
+.nav-item.active{color:var(--red);border-left-color:var(--red);background:var(--red-light);font-weight:500}
+.nav-icon{font-size:15px;width:18px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:600;border-radius:10px;padding:1px 6px;min-width:18px;text-align:center}
+.sidebar-footer{padding:14px 18px;border-top:1px solid var(--border);margin-top:auto}
+.user-pill{display:flex;align-items:center;gap:9px;cursor:pointer;padding:6px 0}
+.user-name{font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ── content ── */
+.page{padding:28px 32px;max-width:960px}
+.page-sm{padding:28px 32px;max-width:620px}
+.page-title{font-family:var(--serif);font-size:26px;font-weight:700;color:var(--text);margin-bottom:4px;line-height:1.1}
+.page-sub{font-size:13px;color:var(--text-2);margin-bottom:22px}
+
+/* ── cards ── */
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.card+.card{margin-top:12px}
+.section-label{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+
+/* ── buttons ── */
+.btn{padding:8px 16px;font-size:12px;font-weight:500;border-radius:var(--r-sm);cursor:pointer;transition:all .12s;border:1px solid var(--border-2);background:#fff;color:var(--text)}
+.btn:hover{background:var(--stone);border-color:var(--border-2)}
+.btn-primary{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-primary:hover{background:#991B1B;border-color:#991B1B}
+.btn-active{background:var(--red-light);color:var(--red);border-color:var(--red-mid)}
+.btn-sm{padding:5px 11px;font-size:11px}
+.btn-danger{background:#FEF2F2;color:var(--red);border-color:#FECACA}
+.btn-full{width:100%;padding:11px;font-size:14px}
+
+/* ── inputs ── */
+.inp{padding:9px 12px;border:1px solid var(--border-2);border-radius:var(--r-sm);font-size:13px;width:100%;background:#fff;color:var(--text)}
+.inp::placeholder{color:var(--text-3)}
+
+/* ── badges ── */
+.badge{font-size:11px;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;font-weight:500;white-space:nowrap}
+.badge-cedar{background:var(--cedar-light);color:var(--cedar)}
+.badge-red{background:var(--red-light);color:var(--red)}
+.badge-gray{background:var(--stone);color:var(--text-2)}
+.badge-blue{background:#EFF6FF;color:#1D4ED8}
+
+/* ── chip filters ── */
+.chip{padding:5px 13px;border:1px solid var(--border-2);border-radius:20px;font-size:12px;cursor:pointer;background:#fff;color:var(--text-2);white-space:nowrap;transition:all .12s}
+.chip:hover{border-color:var(--red-mid);color:var(--red)}
+.chip.on{background:var(--red-light);color:var(--red);border-color:var(--red-mid);font-weight:500}
+
+/* ── avatar ── */
+.av{border-radius:50%;object-fit:cover;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:600}
+
+/* ── profile grid ── */
+.profile-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:14px}
+.profile-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:18px;text-align:center;cursor:pointer;transition:all .15s}
+.profile-card:hover{border-color:var(--red-mid);box-shadow:0 4px 20px rgba(185,28,28,.07);transform:translateY(-1px)}
+.profile-name{font-family:var(--serif);font-size:15px;font-weight:600;color:var(--text);margin:10px 0 2px}
+.profile-role{font-size:11px;color:var(--text-2);margin-bottom:8px}
+.profile-loc{font-size:11px;color:var(--text-3);margin-bottom:10px}
+
+/* ── notification toast ── */
+.toast{position:fixed;top:20px;right:20px;background:var(--text);color:#fff;padding:10px 18px;border-radius:var(--r);font-size:13px;font-weight:500;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,.15);animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── modal ── */
+.modal-bg{position:fixed;inset:0;background:rgba(28,25,23,.45);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px;backdrop-filter:blur(2px)}
+.modal{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:460px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.2)}
+.modal-title{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--text);margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--text-2);margin-bottom:22px}
+.form-row{margin-bottom:14px}
+.form-label{font-size:11px;font-weight:600;color:var(--text-2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em}
+.form-hint{font-size:11px;color:var(--text-3);margin-top:4px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── divider ── */
+.divider{height:1px;background:var(--border);margin:16px 0}
+
+/* ── live counter ── */
+.live-counter{display:flex;gap:0;background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:22px}
+.counter-item{flex:1;padding:12px 16px;text-align:center;border-right:1px solid var(--border)}
+.counter-item:last-child{border-right:none}
+.counter-num{font-family:var(--serif);font-size:22px;font-weight:700;line-height:1}
+.counter-label{font-size:10px;color:var(--text-3);margin-top:3px;text-transform:uppercase;letter-spacing:.06em}
+
+/* ── map ── */
+.map-box{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:20px}
+.country-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:10px}
+.country-card{background:#fff;border:1px solid var(--border);border-radius:var(--r-sm);padding:12px 14px;cursor:pointer;transition:all .12s}
+.country-card:hover{border-color:var(--red-mid);background:var(--red-light)}
+
+/* ── groups ── */
+.group-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:12px}
+.group-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:all .15s}
+.group-card:hover{border-color:var(--red-mid);box-shadow:0 4px 14px rgba(185,28,28,.06)}
+
+/* ── messages ── */
+.msg-layout{display:flex;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;background:#fff;height:520px}
+.msg-list{width:200px;border-right:1px solid var(--border);overflow-y:auto;flex-shrink:0}
+.msg-item{padding:11px 14px;cursor:pointer;transition:background .1s;border-left:2px solid transparent}
+.msg-item:hover{background:var(--stone)}
+.msg-item.active{background:var(--red-light);border-left-color:var(--red)}
+.msg-body{flex:1;display:flex;flex-direction:column;min-width:0}
+.msg-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.msg-thread{flex:1;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.bubble{max-width:72%;border-radius:10px;padding:8px 13px;font-size:13px;line-height:1.5}
+.bubble-me{align-self:flex-end;background:var(--red-light);color:var(--red);border:1px solid var(--red-mid)}
+.bubble-them{align-self:flex-start;background:var(--stone);color:var(--text);border:1px solid var(--border)}
+.msg-input-row{padding:10px;border-top:1px solid var(--border);display:flex;gap:8px}
+
+/* ── profile detail ── */
+.profile-header-card{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.profile-detail-name{font-family:var(--serif);font-size:22px;font-weight:700;margin-bottom:3px}
+.exp-item{display:flex;gap:12px;margin-bottom:12px}
+.exp-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+
+/* ── home ── */
+.home-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;background:linear-gradient(160deg,#FDFAF7 0%,#fff 55%,#F0FDF4 100%)}
+.home-flag{position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--red) 33%,#fff 33%,#fff 66%,var(--cedar) 66%)}
+.home-flag-bottom{position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--red) 33%,#fff 33%,#fff 66%,var(--cedar) 66%)}
+.home-watermark{position:absolute;font-size:260px;opacity:.03;user-select:none;top:50%;left:50%;transform:translate(-50%,-55%);pointer-events:none}
+.home-tag{font-size:11px;font-weight:600;color:var(--red);letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px;opacity:.8}
+.home-h1{font-family:var(--serif);font-size:clamp(32px,5.5vw,58px);font-weight:700;color:var(--text);line-height:1.1;margin-bottom:10px}
+.home-h1 em{color:var(--red);font-style:italic}
+.home-country{font-family:var(--serif);font-size:clamp(32px,5.5vw,58px);font-weight:700;color:var(--red);transition:opacity .28s,transform .28s;display:inline-block}
+.home-country.hidden{opacity:0;transform:translateY(10px)}
+.home-p{font-size:15px;color:var(--text-2);line-height:1.75;max-width:460px;margin:0 auto 36px}
+.home-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:48px}
+.home-btn-primary{padding:13px 32px;font-size:14px;font-weight:600;background:var(--red);color:#fff;border:none;border-radius:var(--r-sm);cursor:pointer;box-shadow:0 4px 18px rgba(185,28,28,.25);transition:all .15s;font-family:var(--sans)}
+.home-btn-primary:hover{background:#991B1B;transform:translateY(-1px);box-shadow:0 8px 24px rgba(185,28,28,.3)}
+.home-btn-secondary{padding:13px 32px;font-size:14px;font-weight:500;background:#fff;color:var(--red);border:1.5px solid var(--red);border-radius:var(--r-sm);cursor:pointer;transition:all .15s;font-family:var(--sans)}
+.home-btn-secondary:hover{background:var(--red-light);transform:translateY(-1px)}
+.home-stats{display:flex;gap:36px;justify-content:center;flex-wrap:wrap}
+.home-stat{text-align:center}
+.home-stat-num{font-family:var(--serif);font-size:24px;font-weight:700;color:var(--text)}
+.home-stat-label{font-size:11px;color:var(--text-3);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+canvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+
+/* ── contact section ── */
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:600px){.contact-grid{grid-template-columns:1fr}}
+
+/* ── responsive ── */
+@media(max-width:768px){
+  .sidebar{width:60px}
+  .logo-box{padding:14px 10px}
+  .logo-name{font-size:14px}.logo-sub{display:none}
+  .nav-item{padding:12px;justify-content:center}
+  .nav-label{display:none}
+  .sidebar-footer{padding:10px}
+  .user-name{display:none}
+  .page,.page-sm{padding:16px}
+  .form-grid{grid-template-columns:1fr}
+  .profile-grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr))}
+  .msg-layout{height:420px}
+  .msg-list{width:60px}
+  .contact-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const { useState, useEffect, useRef } = React;
-const RED = "#C62828", CEDAR = "#2E7D32";
+const {useState,useEffect,useRef,useCallback} = React;
 
-// ════════════════════════════════════════════════════════════════
-// CONFIG — edit these to connect to YOUR Supabase project
-// ════════════════════════════════════════════════════════════════
+// ════════════════════════════════
+// CONFIG
+// ════════════════════════════════
 const SUPABASE_URL = "https://peqcryhrwaapqzwedqxc.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_fCPWW2wyYk5i3V2ZX7k0Yw_FGQK79bD";
-// ════════════════════════════════════════════════════════════════
-
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ── MODERATION / ANTI-HARASSMENT CONFIG ──────────────────────────
-const BANNED_TERMS = [
-  "idiot","stupid","kill yourself","kys","whore","slut","bitch","fuck you",
-  "terrorist","nigger","faggot","retard"
-];
-const MAX_MESSAGES_PER_MINUTE = 8;
-const REPORTS_BEFORE_AUTOBLOCK = 3;
+// ── MODERATION ──────────────────
+const BANNED_TERMS = ["idiot","stupid","kill yourself","kys","whore","slut","bitch","fuck you","terrorist","nigger","faggot","retard"];
+const MAX_MSG_PER_MIN = 8;
+const REPORTS_TO_BLOCK = 3;
+function hasBanned(t){return BANNED_TERMS.some(w=>t.toLowerCase().includes(w))}
+function rateOk(ts){const now=Date.now(),r=ts.filter(t=>now-t<60000);return{ok:r.length<MAX_MSG_PER_MIN,recent:r}}
 
-function containsBannedContent(text) {
-  const lower = text.toLowerCase();
-  return BANNED_TERMS.some(term => lower.includes(term));
-}
-function checkRateLimit(timestamps) {
-  const now = Date.now();
-  const recent = timestamps.filter(t => now - t < 60000);
-  return { allowed: recent.length < MAX_MESSAGES_PER_MINUTE, recent };
-}
-// ──────────────────────────────────────────────────────────────────
-
-const DIASPORA_COUNTRIES = [
-  "France","United States","Brazil","Canada","Australia","Germany",
-  "United Kingdom","UAE","Argentina","Mexico","Ivory Coast","Nigeria",
-  "Saudi Arabia","Sweden","Senegal","Colombia","Venezuela","Chile",
-  "Belgium","Switzerland","Italy","Spain","Greece","Cyprus",
-  "Kuwait","Qatar","Bahrain","Jordan","Egypt","South Africa",
-  "New Zealand","Japan","China","Singapore","Hong Kong",
-];
-
+// ── DATA ────────────────────────
+const DIASPORA = ["France","United States","Brazil","Canada","Australia","Germany","United Kingdom","UAE","Argentina","Mexico","Ivory Coast","Nigeria","Saudi Arabia","Sweden","Senegal","Colombia","Venezuela","Chile","Belgium","Switzerland","Italy","Spain","Greece","Cyprus","Kuwait","Qatar","Bahrain","Jordan","Egypt","South Africa","New Zealand","Japan","China","Singapore","Hong Kong"];
 const COUNTRIES = ["All countries","France","United States","United Kingdom","UAE","Brazil","Canada","Germany","Australia","Lebanon","Saudi Arabia","Argentina","Mexico","Other"];
 const INDUSTRIES = ["All industries","Finance","Technology","Medicine","Architecture","Consulting","Media","Law","Education","Other"];
-const COLOR_PAIRS = [
-  {color:"#C62828",bg:"#FFEBEE"},{color:"#1565C0",bg:"#E3F2FD"},
-  {color:"#2E7D32",bg:"#E8F5E9"},{color:"#6A1B9A",bg:"#F3E5F5"},
-  {color:"#E65100",bg:"#FFF3E0"},{color:"#00695C",bg:"#E0F2F1"},
-  {color:"#4527A0",bg:"#EDE7F6"},{color:"#AD1457",bg:"#FCE4EC"},
-];
+const COLOR_PAIRS = [{c:"#9F1239",b:"#FFF1F2"},{c:"#1D4ED8",b:"#EFF6FF"},{c:"#166534",b:"#F0FDF4"},{c:"#6D28D9",b:"#F5F3FF"},{c:"#C2410C",b:"#FFF7ED"},{c:"#0E7490",b:"#ECFEFF"},{c:"#9D174D",b:"#FDF2F8"},{c:"#1E40AF",b:"#EFF6FF"}];
+const MAP_DOTS = [{name:"France",members:2840,x:47,y:28},{name:"USA",members:4120,x:18,y:35},{name:"UAE",members:3390,x:62,y:40},{name:"Brazil",members:1750,x:26,y:60},{name:"Lebanon",members:1200,x:58,y:33},{name:"UK",members:1560,x:45,y:24},{name:"Canada",members:2100,x:15,y:25},{name:"Australia",members:950,x:82,y:68},{name:"Germany",members:820,x:50,y:26},{name:"Argentina",members:680,x:25,y:68}];
+const GROUPS = [{name:"Lebanese in France",icon:"🇫🇷",type:"Country",members:2840},{name:"Lebanese in USA",icon:"🇺🇸",type:"Country",members:4120},{name:"Lebanese in UAE",icon:"🇦🇪",type:"Country",members:3390},{name:"Lebanese in Brazil",icon:"🇧🇷",type:"Country",members:1750},{name:"Lebanese in UK",icon:"🇬🇧",type:"Country",members:1560},{name:"Lebanese in Finance",icon:"💼",type:"Industry",members:3210},{name:"Lebanese in Tech",icon:"💻",type:"Industry",members:2980},{name:"Lebanese in Medicine",icon:"🏥",type:"Industry",members:1870},{name:"AUB Alumni",icon:"🎓",type:"Alma Mater",members:6400},{name:"LAU Alumni",icon:"🎓",type:"Alma Mater",members:4100}];
 
-const GROUPS = [
-  {name:"Lebanese in France",icon:"🇫🇷",type:"Country",members:2840},
-  {name:"Lebanese in USA",icon:"🇺🇸",type:"Country",members:4120},
-  {name:"Lebanese in UAE",icon:"🇦🇪",type:"Country",members:3390},
-  {name:"Lebanese in Brazil",icon:"🇧🇷",type:"Country",members:1750},
-  {name:"Lebanese in UK",icon:"🇬🇧",type:"Country",members:1560},
-  {name:"Lebanese in Canada",icon:"🇨🇦",type:"Country",members:2100},
-  {name:"Lebanese in Finance",icon:"💼",type:"Industry",members:3210},
-  {name:"Lebanese in Tech",icon:"💻",type:"Industry",members:2980},
-  {name:"Lebanese in Medicine",icon:"🏥",type:"Industry",members:1870},
-  {name:"Lebanese Architects",icon:"🏛️",type:"Industry",members:890},
-  {name:"AUB Alumni",icon:"🎓",type:"Alma Mater",members:6400},
-  {name:"LAU Alumni",icon:"🎓",type:"Alma Mater",members:4100},
-];
-
-const MAP_DOTS = [
-  {name:"France",members:2840,x:47,y:28},{name:"USA",members:4120,x:18,y:35},
-  {name:"UAE",members:3390,x:62,y:40},{name:"Brazil",members:1750,x:26,y:60},
-  {name:"Lebanon",members:1200,x:58,y:33},{name:"UK",members:1560,x:45,y:24},
-  {name:"Canada",members:2100,x:15,y:25},{name:"Australia",members:950,x:82,y:68},
-  {name:"Germany",members:820,x:50,y:26},{name:"Argentina",members:680,x:25,y:68},
-];
-
-function Avatar({ initials, color, bg, size=40, photoUrl }) {
-  if (photoUrl) {
-    return <img src={photoUrl} alt={initials} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:`2px solid ${color}30`}}/>;
-  }
-  return <div style={{width:size,height:size,borderRadius:"50%",background:bg,color,display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700,fontSize:size*.32,flexShrink:0,border:`2px solid ${color}30`}}>{initials}</div>;
+// ── COMPONENTS ──────────────────
+function Av({initials,color,bg,size=40,photoUrl,style={}}) {
+  if(photoUrl) return <img src={photoUrl} alt={initials} style={{width:size,height:size,borderRadius:"50%",objectFit:"cover",flexShrink:0,border:`2px solid ${color}22`,...style}}/>;
+  return <div className="av" style={{width:size,height:size,background:bg,color,fontSize:size*.32,border:`2px solid ${color}22`,...style}}>{initials}</div>;
 }
-function Badge({ children, color="#2E7D32", bg="#E8F5E9" }) {
-  return <span style={{fontSize:11,padding:"3px 9px",borderRadius:20,background:bg,color,fontWeight:600,display:"inline-flex",alignItems:"center",gap:4,whiteSpace:"nowrap"}}>{children}</span>;
-}
-function SectionLabel({ children }) {
-  return <div style={{fontSize:10,fontWeight:700,color:"#aaa",textTransform:"uppercase",letterSpacing:".07em",marginBottom:10}}>{children}</div>;
-}
+function Badge({children,variant="gray"}){return <span className={`badge badge-${variant}`}>{children}</span>}
 
-// ════════════════════════════════════════════════════════════════
-// HOME PAGE with animated "Who are the Lebanese in ___?" 
-// ════════════════════════════════════════════════════════════════
-function HomePage({ onEnter, onSignup, hasProfile }) {
-  const [wordIndex, setWordIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
-  const canvasRef = useRef(null);
-  const animRef = useRef(null);
-
-  useEffect(() => {
-    const iv = setInterval(() => {
-      setVisible(false);
-      setTimeout(() => { setWordIndex(i => (i + 1) % DIASPORA_COUNTRIES.length); setVisible(true); }, 300);
-    }, 1600);
-    return () => clearInterval(iv);
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    const W = canvas.offsetWidth, H = canvas.offsetHeight;
-    canvas.width = W; canvas.height = H;
-    const particles = DIASPORA_COUNTRIES.map(name => ({
-      name, x: Math.random()*W, y: Math.random()*H,
-      vx: (Math.random()-0.5)*0.45, vy: (Math.random()-0.5)*0.45,
-      r: Math.random()*2.5+1.5, alpha: Math.random()*0.5+0.4, phase: Math.random()*Math.PI*2,
-    }));
-    function draw(t) {
+// ════════════════════════════════
+// HOME PAGE
+// ════════════════════════════════
+function HomePage({onEnter,onSignup,hasProfile}){
+  const [wi,setWi]=useState(0),[vis,setVis]=useState(true);
+  const canvasRef=useRef(null),animRef=useRef(null);
+  useEffect(()=>{
+    const iv=setInterval(()=>{setVis(false);setTimeout(()=>{setWi(i=>(i+1)%DIASPORA.length);setVis(true);},300)},1700);
+    return()=>clearInterval(iv);
+  },[]);
+  useEffect(()=>{
+    const c=canvasRef.current;if(!c)return;
+    const ctx=c.getContext("2d"),W=c.offsetWidth,H=c.offsetHeight;
+    c.width=W;c.height=H;
+    const pts=DIASPORA.map(n=>({n,x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,r:Math.random()*2+1.5,a:Math.random()*.45+.3,ph:Math.random()*Math.PI*2}));
+    function draw(t){
       ctx.clearRect(0,0,W,H);
-      particles.forEach((p,i) => {
-        p.x += p.vx; p.y += p.vy;
-        if (p.x<-80) p.x=W+80; if (p.x>W+80) p.x=-80;
-        if (p.y<-40) p.y=H+40; if (p.y>H+40) p.y=-40;
-        const pulse = 0.7+0.3*Math.sin(t/900+p.phase);
-        const alpha = p.alpha*pulse;
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle=`rgba(198,40,40,${alpha})`; ctx.fill();
-        ctx.beginPath(); ctx.arc(p.x,p.y,p.r+3,0,Math.PI*2); ctx.fillStyle=`rgba(198,40,40,${alpha*0.15})`; ctx.fill();
-        ctx.font = `500 11px system-ui, sans-serif`;
-        ctx.fillStyle = `rgba(80,20,20,${alpha*0.85})`;
-        ctx.fillText(p.name, p.x+p.r+5, p.y+4);
-        particles.forEach((q,j) => {
-          if (j<=i) return;
-          const dx=p.x-q.x, dy=p.y-q.y, dist=Math.sqrt(dx*dx+dy*dy);
-          if (dist<120) { ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(q.x,q.y); ctx.strokeStyle=`rgba(198,40,40,${(1-dist/120)*0.12})`; ctx.lineWidth=0.5; ctx.stroke(); }
-        });
+      pts.forEach((p,i)=>{
+        p.x+=p.vx;p.y+=p.vy;
+        if(p.x<-90)p.x=W+90;if(p.x>W+90)p.x=-90;
+        if(p.y<-40)p.y=H+40;if(p.y>H+40)p.y=-40;
+        const pulse=.7+.3*Math.sin(t/1000+p.ph),a=p.a*pulse;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=`rgba(185,28,28,${a})`;ctx.fill();
+        ctx.beginPath();ctx.arc(p.x,p.y,p.r+4,0,Math.PI*2);ctx.fillStyle=`rgba(185,28,28,${a*.12})`;ctx.fill();
+        ctx.font="500 10.5px Inter,system-ui";ctx.fillStyle=`rgba(92,26,26,${a*.8})`;ctx.fillText(p.n,p.x+p.r+5,p.y+4);
+        pts.forEach((q,j)=>{if(j<=i)return;const dx=p.x-q.x,dy=p.y-q.y,d=Math.sqrt(dx*dx+dy*dy);if(d<110){ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.strokeStyle=`rgba(185,28,28,${(1-d/110)*.1})`;ctx.lineWidth=.5;ctx.stroke();}});
       });
-      animRef.current = requestAnimationFrame(draw);
+      animRef.current=requestAnimationFrame(draw);
     }
-    animRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(animRef.current);
-  }, []);
-
-  return (
-    <div style={{position:"relative",minHeight:"100vh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",overflow:"hidden",background:"linear-gradient(160deg,#fff8f8 0%,#fff 50%,#f0f7f0 100%)"}}>
-      <canvas ref={canvasRef} style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}/>
-      <div style={{position:"absolute",fontSize:320,opacity:.03,userSelect:"none",lineHeight:1,top:"50%",left:"50%",transform:"translate(-50%,-50%)"}}>🌲</div>
-      <div style={{position:"absolute",top:0,left:0,right:0,height:5,background:`linear-gradient(90deg, ${RED} 33%, #fff 33%, #fff 66%, ${CEDAR} 66%)`}}/>
-      <div style={{position:"relative",textAlign:"center",padding:"0 24px",maxWidth:700,zIndex:1}}>
-        <div style={{fontSize:13,fontWeight:600,color:RED,letterSpacing:".12em",textTransform:"uppercase",marginBottom:20,opacity:.8}}>My Lebanese Network</div>
-        <div style={{fontSize:"clamp(28px,5vw,52px)",fontWeight:800,color:"#1a1a1a",lineHeight:1.2,marginBottom:8}}>Who are the Lebanese</div>
-        <div style={{fontSize:"clamp(28px,5vw,52px)",fontWeight:800,lineHeight:1.2,marginBottom:36,display:"flex",alignItems:"center",justifyContent:"center",gap:12,flexWrap:"wrap"}}>
-          <span style={{color:"#ccc"}}>in</span>
-          <span style={{display:"inline-block",color:RED,textAlign:"center",transition:"opacity .28s ease, transform .28s ease",opacity:visible?1:0,transform:visible?"translateY(0)":"translateY(8px)",whiteSpace:"nowrap"}}>
-            {DIASPORA_COUNTRIES[wordIndex]}
-          </span>
-          <span style={{color:"#ccc"}}>?</span>
+    animRef.current=requestAnimationFrame(draw);
+    return()=>cancelAnimationFrame(animRef.current);
+  },[]);
+  return(
+    <div className="home-wrap">
+      <div className="home-flag"/>
+      <canvas ref={canvasRef}/>
+      <div className="home-watermark">🌲</div>
+      <div style={{position:"relative",textAlign:"center",padding:"0 24px",maxWidth:680,zIndex:1}}>
+        <div className="home-tag">My Lebanese Network</div>
+        <h1 className="home-h1">Who are the Lebanese<br/>in <span className={`home-country${vis?"":" hidden"}`}>{DIASPORA[wi]}</span> ?</h1>
+        <p className="home-p">Find, connect, and network with Lebanese professionals worldwide — by country, company, or industry.</p>
+        <div className="home-btns">
+          <button className="home-btn-primary" onClick={onEnter}>Explore the network →</button>
+          {!hasProfile&&<button className="home-btn-secondary" onClick={onSignup}>Join the network</button>}
         </div>
-        <p style={{fontSize:16,color:"#888",lineHeight:1.7,marginBottom:40,maxWidth:500,margin:"0 auto 40px"}}>
-          Find, connect, and network with Lebanese professionals worldwide — by country, company, industry, or Lebanese origin.
-        </p>
-        <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap"}}>
-          <button onClick={onEnter} style={{padding:"13px 32px",fontSize:15,fontWeight:700,background:RED,color:"#fff",border:"none",borderRadius:10,cursor:"pointer",boxShadow:"0 4px 20px rgba(198,40,40,.3)"}}>Explore the network →</button>
-          {!hasProfile && <button onClick={onSignup} style={{padding:"13px 32px",fontSize:15,fontWeight:700,background:"#fff",color:RED,border:`2px solid ${RED}`,borderRadius:10,cursor:"pointer"}}>Join the network</button>}
-        </div>
-        <div style={{marginTop:48,display:"flex",gap:32,justifyContent:"center",flexWrap:"wrap"}}>
-          {[["🌍","35+ countries"],["👥","Real members"],["💼","All industries"],["🌲","Lebanese roots"]].map(([icon,label])=>(
-            <div key={label} style={{textAlign:"center"}}><div style={{fontSize:22}}>{icon}</div><div style={{fontSize:12,color:"#aaa",marginTop:4,fontWeight:500}}>{label}</div></div>
+        <div className="home-stats">
+          {[["🌍","35+ countries"],["👥","Growing community"],["💼","All industries"],["🌲","Lebanese roots"]].map(([ic,lb])=>(
+            <div key={lb} className="home-stat"><div style={{fontSize:22}}>{ic}</div><div className="home-stat-label">{lb}</div></div>
           ))}
         </div>
       </div>
-      <div style={{position:"absolute",bottom:0,left:0,right:0,height:5,background:`linear-gradient(90deg, ${RED} 33%, #fff 33%, #fff 66%, ${CEDAR} 66%)`}}/>
+      <div className="home-flag-bottom"/>
     </div>
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-// AUTH SCREEN — real Supabase login/signup
-// ════════════════════════════════════════════════════════════════
-function AuthScreen({ onAuthed, onClose }) {
-  const [mode, setMode] = useState("signup"); // signup | login
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit() {
-    setError(""); setLoading(true);
-    try {
-      if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        onAuthed(data.user);
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-        onAuthed(data.user);
-      }
-    } catch (e) {
-      setError(e.message || "Something went wrong");
-    } finally {
-      setLoading(false);
-    }
+// ════════════════════════════════
+// AUTH SCREEN
+// ════════════════════════════════
+function AuthScreen({onAuthed,onClose}){
+  const [mode,setMode]=useState("signup"),[email,setEmail]=useState(""),[pw,setPw]=useState(""),[err,setErr]=useState(""),[loading,setLoading]=useState(false);
+  async function submit(){
+    setErr("");setLoading(true);
+    try{
+      if(mode==="signup"){const{data,error}=await supabase.auth.signUp({email,password:pw});if(error)throw error;onAuthed(data.user);}
+      else{const{data,error}=await supabase.auth.signInWithPassword({email,password:pw});if(error)throw error;onAuthed(data.user);}
+    }catch(e){setErr(e.message||"Something went wrong");}
+    finally{setLoading(false);}
   }
-
-  return (
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:300,padding:16}}>
-      <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:400,boxShadow:"0 24px 80px rgba(0,0,0,.25)"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-                        <div style={{fontSize:18,fontWeight:800,color:RED}}>🌲 {mode==="signup"?"Create your account":"Welcome back"}</div>
-          <button style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#bbb"}} onClick={onClose}>✕</button>
+  return(
+    <div className="modal-bg">
+      <div className="modal">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:20}}>
+          <div><div className="modal-title">{mode==="signup"?"Create your account":"Welcome back"}</div>
+          <div className="modal-sub">My Lebanese Network</div></div>
+          <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"var(--text-3)",lineHeight:1}} onClick={onClose}>✕</button>
         </div>
-        <div style={{display:"grid",gap:12}}>
-          <div>
-            <div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Email</div>
-            <input type="email" style={{padding:"9px 12px",border:"1px solid #ddd",borderRadius:8,fontSize:13,width:"100%"}} value={email} onChange={e=>setEmail(e.target.value)} />
-          </div>
-          <div>
-            <div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Password</div>
-            <input type="password" style={{padding:"9px 12px",border:"1px solid #ddd",borderRadius:8,fontSize:13,width:"100%"}} value={password} onChange={e=>setPassword(e.target.value)} placeholder="At least 6 characters" />
-          </div>
-          {error && <div style={{fontSize:12,color:RED,background:"#FFEBEE",padding:"8px 12px",borderRadius:8}}>{error}</div>}
-          <button disabled={loading} style={{padding:"11px 0",fontSize:14,fontWeight:700,background:RED,color:"#fff",border:"none",borderRadius:8,cursor:"pointer",opacity:loading?.6:1}} onClick={handleSubmit}>
-            {loading ? "Please wait…" : mode==="signup" ? "Create account →" : "Log in →"}
-          </button>
-          <div style={{textAlign:"center",fontSize:12,color:"#888"}}>
-            {mode==="signup" ? "Already have an account? " : "New to LebConnect? "}
-            <span style={{color:RED,fontWeight:600,cursor:"pointer"}} onClick={()=>setMode(mode==="signup"?"login":"signup")}>
-              {mode==="signup" ? "Log in" : "Sign up"}
-            </span>
-          </div>
+        <div className="form-row"><div className="form-label">Email</div><input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com"/></div>
+        <div className="form-row"><div className="form-label">Password</div><input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="At least 6 characters"/></div>
+        {err&&<div style={{background:"var(--red-light)",color:"var(--red)",padding:"8px 12px",borderRadius:8,fontSize:12,marginBottom:12}}>{err}</div>}
+        <button className="btn btn-primary btn-full" disabled={loading} onClick={submit} style={{marginBottom:14}}>{loading?"Please wait…":mode==="signup"?"Create account →":"Log in →"}</button>
+        <div style={{textAlign:"center",fontSize:12,color:"var(--text-3)"}}>
+          {mode==="signup"?"Already have an account? ":"New here? "}
+          <span style={{color:"var(--red)",fontWeight:600,cursor:"pointer"}} onClick={()=>setMode(mode==="signup"?"login":"signup")}>{mode==="signup"?"Log in":"Sign up"}</span>
         </div>
       </div>
     </div>
   );
 }
 
-// ════════════════════════════════════════════════════════════════
+// ════════════════════════════════
+// PHOTO UPLOAD WIDGET
+// ════════════════════════════════
+function PhotoUpload({preview,onChange,uploading}){
+  return(
+    <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,marginBottom:20}}>
+      {preview?<img src={preview} alt="preview" style={{width:80,height:80,borderRadius:"50%",objectFit:"cover",border:"2px solid var(--border-2)"}}/>
+      :<div style={{width:80,height:80,borderRadius:"50%",background:"var(--stone)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,color:"var(--text-3)"}}>📷</div>}
+      <label className="btn btn-sm" style={{cursor:"pointer"}}>
+        {uploading?"Uploading…":"Choose photo"}
+        <input type="file" accept="image/*" style={{display:"none"}} onChange={onChange}/>
+      </label>
+    </div>
+  );
+}
+
+// ════════════════════════════════
 // MAIN APP
-// ════════════════════════════════════════════════════════════════
-function App() {
-  const [session, setSession] = useState(null);
-  const [profiles, setProfiles] = useState([]);
-  const [myProfile, setMyProfile] = useState(null);
-  const [loadingProfiles, setLoadingProfiles] = useState(true);
+// ════════════════════════════════
+function App(){
+  const [session,setSession]=useState(null);
+  const [profiles,setProfiles]=useState([]);
+  const [myProfile,setMyProfile]=useState(null);
+  const [loading,setLoading]=useState(true);
+  const [page,setPage]=useState("home");
+  const [viewProfile,setViewProfile]=useState(null);
+  const [searchQ,setSearchQ]=useState("");
+  const [filterCountry,setFilterCountry]=useState("All countries");
+  const [filterIndustry,setFilterIndustry]=useState("All industries");
+  const [filterLived,setFilterLived]=useState(false);
+  const [groupFilter,setGroupFilter]=useState("All");
+  const [mapHover,setMapHover]=useState(null);
+  const [toast,setToast]=useState(null);
+  const [showAuth,setShowAuth]=useState(false);
+  const [showCreate,setShowCreate]=useState(false);
+  const [showEdit,setShowEdit]=useState(false);
+  const [showContact,setShowContact]=useState(null);
+  const [connections,setConnections]=useState([]);
+  const [endorsements,setEndorsements]=useState([]);
+  const [blocks,setBlocks]=useState([]);
+  const [reports,setReports]=useState([]);
+  const [activeChat,setActiveChat]=useState(null);
+  const [messages,setMessages]=useState([]);
+  const [msgInput,setMsgInput]=useState("");
+  const [msgTs,setMsgTs]=useState([]);
+  const [modWarn,setModWarn]=useState(null);
+  const [showReport,setShowReport]=useState(null);
+  const [unread,setUnread]=useState({});
+  const [liveStats,setLiveStats]=useState({requests:0,accepted:0,messages:0});
+  const [photoFile,setPhotoFile]=useState(null);
+  const [photoPreview,setPhotoPreview]=useState(null);
+  const [uploading,setUploading]=useState(false);
+  const [form,setForm]=useState({firstName:"",lastName:"",role:"",company:"",country:"",city:"",livedLebanon:false,bio:"",languages:"",industry:"Technology",shareEmail:false,sharePhone:false,phone:""});
+  const [editForm,setEditForm]=useState({});
+  const [feedbackText,setFeedbackText]=useState("");
+  const [feedbackSent,setFeedbackSent]=useState(false);
+  const msgEnd=useRef(null);
 
-  const [page, setPage] = useState("home");
-  const [viewProfile, setViewProfile] = useState(null);
-  const [searchQ, setSearchQ] = useState("");
-  const [filterCountry, setFilterCountry] = useState("All countries");
-  const [filterIndustry, setFilterIndustry] = useState("All industries");
-  const [filterLived, setFilterLived] = useState(false);
-  const [groupFilter, setGroupFilter] = useState("All");
-  const [mapHover, setMapHover] = useState(null);
-  const [notification, setNotification] = useState(null);
-  const [showAuth, setShowAuth] = useState(false);
-  const [showCreateProfile, setShowCreateProfile] = useState(false);
-  const [showEditProfile, setShowEditProfile] = useState(false);
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [liveStats, setLiveStats] = useState({ requests: 0, accepted: 0, messages: 0 });
-  const [form, setForm] = useState({firstName:"",lastName:"",role:"",company:"",country:"",city:"",livedLebanon:false,bio:"",languages:"",industry:"Technology"});
-  const [editForm, setEditForm] = useState({});
+  function notify(msg){setToast(msg);setTimeout(()=>setToast(null),2800);}
 
-  const [connections, setConnections] = useState([]);
-  const [endorsements, setEndorsements] = useState([]);
-  const [blocks, setBlocks] = useState([]);
-  const [activeChat, setActiveChat] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [msgInput, setMsgInput] = useState("");
-  const [myMsgTimestamps, setMyMsgTimestamps] = useState([]);
-  const [moderationWarning, setModerationWarning] = useState(null);
-  const [showReportModal, setShowReportModal] = useState(null);
-  const messagesEndRef = useRef(null);
+  // auth
+  useEffect(()=>{
+    supabase.auth.getSession().then(({data:{session}})=>setSession(session));
+    const{data:l}=supabase.auth.onAuthStateChange((_,s)=>setSession(s));
+    return()=>l.subscription.unsubscribe();
+  },[]);
 
-  function notify(msg) { setNotification(msg); setTimeout(() => setNotification(null), 2800); }
-
-  // ── AUTH STATE ──
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
-    return () => listener.subscription.unsubscribe();
-  }, []);
-
-  // ── LOAD ALL PROFILES ──
-  async function loadProfiles() {
-    setLoadingProfiles(true);
-    const { data, error } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-    if (!error && data) setProfiles(data);
-    setLoadingProfiles(false);
+  // load profiles
+  async function loadProfiles(){
+    setLoading(true);
+    const{data}=await supabase.from("profiles").select("*").order("created_at",{ascending:false});
+    if(data)setProfiles(data);
+    setLoading(false);
   }
-  useEffect(() => { loadProfiles(); }, []);
+  useEffect(()=>{loadProfiles();},[]);
 
-  // ── FIND MY OWN PROFILE ──
-  useEffect(() => {
-    if (session?.user && profiles.length >= 0) {
-      const mine = profiles.find(p => p.user_id === session.user.id);
-      setMyProfile(mine || null);
-      if (session.user && !mine && profiles.length > 0) {
-        // logged in but no profile yet
-      }
+  useEffect(()=>{
+    if(session?.user&&profiles.length>=0){
+      const mine=profiles.find(p=>p.user_id===session.user.id);
+      setMyProfile(mine||null);
     }
-  }, [session, profiles]);
+  },[session,profiles]);
 
-  // ── LOAD CONNECTIONS / ENDORSEMENTS / BLOCKS ──
-  async function loadRelations() {
-    const [c, e, b] = await Promise.all([
+  // relations
+  async function loadRelations(){
+    const[c,e,b]=await Promise.all([
       supabase.from("connections").select("*"),
       supabase.from("endorsements").select("*"),
       supabase.from("blocks").select("*"),
     ]);
-    if (c.data) setConnections(c.data);
-    if (e.data) setEndorsements(e.data);
-    if (b.data) setBlocks(b.data);
+    if(c.data)setConnections(c.data);
+    if(e.data)setEndorsements(e.data);
+    if(b.data)setBlocks(b.data);
   }
-  useEffect(() => { loadRelations(); }, []);
+  useEffect(()=>{loadRelations();},[]);
 
-  // ── LIVE INTERACTION COUNTER ──
-  async function loadLiveStats() {
-    const [r, a, m] = await Promise.all([
-      supabase.from("interaction_events").select("id", { count: "exact", head: true }).eq("event_type", "request_sent"),
-      supabase.from("interaction_events").select("id", { count: "exact", head: true }).eq("event_type", "request_accepted"),
-      supabase.from("interaction_events").select("id", { count: "exact", head: true }).eq("event_type", "first_message"),
+  // live stats
+  async function loadStats(){
+    const[r,a,m]=await Promise.all([
+      supabase.from("interaction_events").select("id",{count:"exact",head:true}).eq("event_type","request_sent"),
+      supabase.from("interaction_events").select("id",{count:"exact",head:true}).eq("event_type","request_accepted"),
+      supabase.from("interaction_events").select("id",{count:"exact",head:true}).eq("event_type","first_message"),
     ]);
-    setLiveStats({ requests: r.count || 0, accepted: a.count || 0, messages: m.count || 0 });
+    setLiveStats({requests:r.count||0,accepted:a.count||0,messages:m.count||0});
   }
-  useEffect(() => {
-    loadLiveStats();
-    const channel = supabase.channel("interaction_events_live")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "interaction_events" }, () => loadLiveStats())
-      .subscribe();
-    return () => supabase.removeChannel(channel);
-  }, []);
+  useEffect(()=>{
+    loadStats();
+    const ch=supabase.channel("stats_live").on("postgres_changes",{event:"INSERT",schema:"public",table:"interaction_events"},()=>loadStats()).subscribe();
+    return()=>supabase.removeChannel(ch);
+  },[]);
+  async function logEvent(type){await supabase.from("interaction_events").insert({event_type:type});}
 
-  async function logEvent(type) {
-    await supabase.from("interaction_events").insert({ event_type: type });
-  }
-
-  // ── LOAD MESSAGES FOR ACTIVE CHAT ──
-  async function loadMessages(otherId) {
-    if (!myProfile || !otherId) return;
-    const { data } = await supabase.from("messages").select("*")
+  // messages
+  async function loadMessages(otherId){
+    if(!myProfile||!otherId)return;
+    const{data}=await supabase.from("messages").select("*")
       .or(`and(from_id.eq.${myProfile.id},to_id.eq.${otherId}),and(from_id.eq.${otherId},to_id.eq.${myProfile.id})`)
-      .order("created_at", { ascending: true });
-    if (data) setMessages(data);
+      .order("created_at",{ascending:true});
+    if(data)setMessages(data);
   }
-  useEffect(() => { if (activeChat) loadMessages(activeChat); }, [activeChat, myProfile]);
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({behavior:"smooth"}); }, [messages]);
+  useEffect(()=>{if(activeChat)loadMessages(activeChat);},[activeChat,myProfile]);
+  useEffect(()=>{msgEnd.current?.scrollIntoView({behavior:"smooth"});},[messages]);
 
-  // ── REALTIME: live message updates + unread tracking ──
-  const [unreadFrom, setUnreadFrom] = useState({}); // { senderId: count }
-  useEffect(() => {
-    if (!myProfile) return;
-    const channel = supabase.channel("messages_live_" + myProfile.id)
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, (payload) => {
-        const m = payload.new;
-        const isForMe = m.to_id === myProfile.id;
-        const isFromMe = m.from_id === myProfile.id;
-        if (!isForMe && !isFromMe) return;
-        // If this message belongs to the currently open chat, append it live
-        const otherParty = isForMe ? m.from_id : m.to_id;
-        if (activeChat === otherParty) {
-          setMessages(prev => prev.some(x => x.id === m.id) ? prev : [...prev, m]);
+  // realtime messages
+  useEffect(()=>{
+    if(!myProfile)return;
+    const ch=supabase.channel("msg_live_"+myProfile.id)
+      .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages"},(payload)=>{
+        const m=payload.new;
+        const isMe=m.to_id===myProfile.id,isMine=m.from_id===myProfile.id;
+        if(!isMe&&!isMine)return;
+        const other=isMe?m.from_id:m.to_id;
+        if(activeChat===other)setMessages(prev=>prev.some(x=>x.id===m.id)?prev:[...prev,m]);
+        if(isMe&&activeChat!==m.from_id){
+          setUnread(prev=>({...prev,[m.from_id]:(prev[m.from_id]||0)+1}));
+          const s=profiles.find(p=>p.id===m.from_id);
+          notify(`✉️ New message from ${s?s.name.split(" ")[0]:"someone"}`);
         }
-        // If it's an incoming message not from an open chat, count as unread + notify
-        if (isForMe && activeChat !== m.from_id) {
-          setUnreadFrom(prev => ({ ...prev, [m.from_id]: (prev[m.from_id]||0) + 1 }));
-          const sender = profiles.find(p => p.id === m.from_id);
-          notify(`✉️ New message from ${sender ? sender.name.split(" ")[0] : "someone"}`);
-        }
-      })
-      .subscribe();
-    return () => supabase.removeChannel(channel);
-  }, [myProfile, activeChat, profiles]);
+      }).subscribe();
+    return()=>supabase.removeChannel(ch);
+  },[myProfile,activeChat,profiles]);
 
-  function openChat(otherId) {
-    setActiveChat(otherId);
-    setUnreadFrom(prev => { const next = {...prev}; delete next[otherId]; return next; });
-  }
+  function openChat(id){setActiveChat(id);setUnread(prev=>{const n={...prev};delete n[id];return n;});}
 
-  // ── CREATE PROFILE ──
-  async function handleCreateProfile() {
-    if (!form.firstName.trim() || !form.lastName.trim()) return alert("Please enter your first and last name.");
-    if (!session?.user) return setShowAuth(true);
-    const fullName = `${form.firstName.trim()} ${form.lastName.trim()}`;
-    const pair = COLOR_PAIRS[profiles.length % COLOR_PAIRS.length];
-    const initials = (form.firstName[0] + form.lastName[0]).toUpperCase();
-    let photo_url = null;
-    if (photoFile) {
-      photo_url = await uploadPhoto(photoFile, session.user.id);
-    }
-    const payload = {
-      user_id: session.user.id,
-      name: fullName, role: form.role, company: form.company,
-      country: form.country, city: form.city,
-      lived_lebanon: form.livedLebanon, bio: form.bio,
-      languages: form.languages.split(",").map(l=>l.trim()).filter(Boolean),
-      industry: form.industry, email: session.user.email,
-      initials, color: pair.color, bg: pair.bg, photo_url,
-    };
-    const { data, error } = await supabase.from("profiles").insert(payload).select().single();
-    if (error) { notify("Error: " + error.message); return; }
-    setMyProfile(data);
-    setProfiles(prev => [data, ...prev]);
-    setShowCreateProfile(false);
-    setPhotoFile(null); setPhotoPreview(null);
-    setPage("myprofile");
-                    notify("Welcome to My Lebanese Network! 🌲");
-  }
-
-  async function uploadPhoto(file, userId) {
-    setUploadingPhoto(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `${userId}-${Date.now()}.${ext}`;
-      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
-      if (error) { notify("Photo upload failed: " + error.message); return null; }
-      const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  // photo upload
+  async function uploadPhoto(file,userId){
+    setUploading(true);
+    try{
+      const ext=file.name.split(".").pop(),path=`${userId}-${Date.now()}.${ext}`;
+      const{error}=await supabase.storage.from("avatars").upload(path,file,{upsert:true});
+      if(error){notify("Photo upload failed");return null;}
+      const{data}=supabase.storage.from("avatars").getPublicUrl(path);
       return data.publicUrl;
-    } finally {
-      setUploadingPhoto(false);
+    }finally{setUploading(false);}
+  }
+  function onPhotoSelect(e){
+    const f=e.target.files?.[0];if(!f)return;
+    if(f.size>5*1024*1024){notify("Photo must be under 5MB");return;}
+    setPhotoFile(f);setPhotoPreview(URL.createObjectURL(f));
+  }
+
+  // create profile
+  async function createProfile(){
+    if(!form.firstName.trim()||!form.lastName.trim())return alert("Please enter first and last name.");
+    if(!session?.user)return setShowAuth(true);
+    const fullName=`${form.firstName.trim()} ${form.lastName.trim()}`;
+    const pair=COLOR_PAIRS[profiles.length%COLOR_PAIRS.length];
+    const initials=(form.firstName[0]+form.lastName[0]).toUpperCase();
+    let photo_url=null;
+    if(photoFile)photo_url=await uploadPhoto(photoFile,session.user.id);
+    const payload={user_id:session.user.id,name:fullName,role:form.role,company:form.company,country:form.country,city:form.city,lived_lebanon:form.livedLebanon,bio:form.bio,languages:form.languages.split(",").map(l=>l.trim()).filter(Boolean),industry:form.industry,email:session.user.email,initials,color:pair.c,bg:pair.b,photo_url,share_email:form.shareEmail,share_phone:form.sharePhone,phone:form.phone};
+    const{data,error}=await supabase.from("profiles").insert(payload).select().single();
+    if(error){notify("Error: "+error.message);return;}
+    setMyProfile(data);setProfiles(prev=>[data,...prev]);
+    setShowCreate(false);setPhotoFile(null);setPhotoPreview(null);
+    setPage("myprofile");notify("Welcome to My Lebanese Network! 🌲");
+  }
+
+  // edit profile
+  async function saveEdit(){
+    if(!editForm.firstName?.trim()||!editForm.lastName?.trim()||!myProfile)return;
+    const fullName=`${editForm.firstName.trim()} ${editForm.lastName.trim()}`;
+    const payload={name:fullName,role:editForm.role,company:editForm.company,country:editForm.country,city:editForm.city,lived_lebanon:editForm.livedLebanon??editForm.lived_lebanon,bio:editForm.bio,languages:typeof editForm.languages==="string"?editForm.languages.split(",").map(l=>l.trim()).filter(Boolean):editForm.languages,industry:editForm.industry,share_email:editForm.share_email||false,share_phone:editForm.share_phone||false,phone:editForm.phone||""};
+    const{data,error}=await supabase.from("profiles").update(payload).eq("id",myProfile.id).select().single();
+    if(error){notify("Error: "+error.message);return;}
+    setMyProfile(data);setProfiles(prev=>prev.map(p=>p.id===data.id?data:p));
+    setShowEdit(false);notify("Profile updated!");
+  }
+
+  async function changePhoto(e){
+    const f=e.target.files?.[0];if(!f||!myProfile||!session)return;
+    if(f.size>5*1024*1024){notify("Photo must be under 5MB");return;}
+    const url=await uploadPhoto(f,session.user.id);
+    if(url){
+      const{data,error}=await supabase.from("profiles").update({photo_url:url}).eq("id",myProfile.id).select().single();
+      if(!error){setMyProfile(data);setProfiles(prev=>prev.map(p=>p.id===data.id?data:p));notify("Photo updated! 📸");}
     }
   }
 
-  function handlePhotoSelect(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { notify("Photo must be under 5MB"); return; }
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
+  async function deleteProfile(){
+    if(!myProfile||!window.confirm("Delete your profile? This cannot be undone."))return;
+    await supabase.from("profiles").delete().eq("id",myProfile.id);
+    setProfiles(prev=>prev.filter(p=>p.id!==myProfile.id));
+    setMyProfile(null);setShowEdit(false);setPage("discover");
   }
 
-  async function handleSaveEdit() {
-    if (!editForm.firstName?.trim() || !editForm.lastName?.trim() || !myProfile) return;
-    const fullName = `${editForm.firstName.trim()} ${editForm.lastName.trim()}`;
-    const payload = {
-      name: fullName, role: editForm.role, company: editForm.company,
-      country: editForm.country, city: editForm.city,
-      lived_lebanon: editForm.livedLebanon ?? editForm.lived_lebanon,
-      bio: editForm.bio,
-      languages: typeof editForm.languages === "string" ? editForm.languages.split(",").map(l=>l.trim()).filter(Boolean) : editForm.languages,
-      industry: editForm.industry,
-    };
-    const { data, error } = await supabase.from("profiles").update(payload).eq("id", myProfile.id).select().single();
-    if (error) { notify("Error: " + error.message); return; }
-    setMyProfile(data);
-    setProfiles(prev => prev.map(p => p.id===data.id ? data : p));
-    setShowEditProfile(false);
-    notify("Profile updated!");
-  }
+  async function logout(){await supabase.auth.signOut();setMyProfile(null);setPage("home");}
 
-  async function handleEditPhotoUpload(e) {
-    const file = e.target.files?.[0];
-    if (!file || !myProfile || !session) return;
-    if (file.size > 5 * 1024 * 1024) { notify("Photo must be under 5MB"); return; }
-    setUploadingPhoto(true);
-    const photo_url = await uploadPhoto(file, session.user.id);
-    if (photo_url) {
-      const { data, error } = await supabase.from("profiles").update({ photo_url }).eq("id", myProfile.id).select().single();
-      if (!error) { setMyProfile(data); setProfiles(prev => prev.map(p => p.id===data.id ? data : p)); notify("Photo updated! 📸"); }
-    }
-    setUploadingPhoto(false);
-  }
-
-  async function handleDeleteProfile() {
-    if (!myProfile) return;
-    if (!window.confirm("Delete your profile? This cannot be undone.")) return;
-    await supabase.from("profiles").delete().eq("id", myProfile.id);
-    setProfiles(prev => prev.filter(p => p.id !== myProfile.id));
-    setMyProfile(null);
-    setShowEditProfile(false);
-    setPage("discover");
-  }
-
-  async function handleLogout() {
-    await supabase.auth.signOut();
-    setMyProfile(null);
-    setPage("home");
-  }
-
-  async function sendConnectionRequest(otherId) {
-    if (!myProfile) return setShowAuth(true);
-    const existing = connections.find(c => 
-      (c.user_id===myProfile.id && c.connected_to===otherId) ||
-      (c.user_id===otherId && c.connected_to===myProfile.id)
-    );
-    if (existing) {
-      if (existing.status === "pending") { notify("Request already pending."); return; }
-      if (existing.status === "accepted") {
-        await supabase.from("connections").delete().eq("id", existing.id);
-        setConnections(prev => prev.filter(c => c.id !== existing.id));
-        notify("Disconnected");
-      }
+  // connections
+  async function sendRequest(otherId){
+    if(!myProfile)return setShowAuth(true);
+    const ex=connections.find(c=>(c.user_id===myProfile.id&&c.connected_to===otherId)||(c.user_id===otherId&&c.connected_to===myProfile.id));
+    if(ex){
+      if(ex.status==="pending"){notify("Request already pending.");return;}
+      if(ex.status==="accepted"){await supabase.from("connections").delete().eq("id",ex.id);setConnections(prev=>prev.filter(c=>c.id!==ex.id));notify("Disconnected");}
       return;
     }
-    const { data, error } = await supabase.from("connections").insert({ user_id: myProfile.id, connected_to: otherId, status: "pending" }).select().single();
-    if (!error) {
-      setConnections(prev => [...prev, data]);
-      logEvent("request_sent");
-      notify("Connection request sent! 📨");
-    } else {
-      notify("Error: " + error.message);
-    }
+    const{data,error}=await supabase.from("connections").insert({user_id:myProfile.id,connected_to:otherId,status:"pending"}).select().single();
+    if(!error){setConnections(prev=>[...prev,data]);logEvent("request_sent");notify("Request sent! 📨");}
   }
 
-  async function respondToRequest(requestId, accept) {
-    const { data, error } = await supabase.from("connections").update({ status: accept ? "accepted" : "declined" }).eq("id", requestId).select().single();
-    if (!error) {
-      setConnections(prev => prev.map(c => c.id === requestId ? data : c));
-      if (accept) { logEvent("request_accepted"); notify("Connection accepted! 🤝"); }
-      else { notify("Request declined."); }
-    }
+  async function respond(reqId,accept){
+    const{data,error}=await supabase.from("connections").update({status:accept?"accepted":"declined"}).eq("id",reqId).select().single();
+    if(!error){setConnections(prev=>prev.map(c=>c.id===reqId?data:c));if(accept){logEvent("request_accepted");notify("Connection accepted! 🤝");}else notify("Request declined.");}
   }
 
-  async function toggleEndorse(otherId) {
-    if (!myProfile) return setShowAuth(true);
-    const existing = endorsements.find(e => e.user_id===myProfile.id && e.endorsed_id===otherId);
-    if (existing) {
-      await supabase.from("endorsements").delete().eq("id", existing.id);
-      setEndorsements(prev => prev.filter(e => e.id !== existing.id));
-    } else {
-      const { data, error } = await supabase.from("endorsements").insert({ user_id: myProfile.id, endorsed_id: otherId }).select().single();
-      if (!error) { setEndorsements(prev => [...prev, data]); notify("Endorsed! ⭐"); }
-    }
+  async function toggleEndorse(otherId){
+    if(!myProfile)return setShowAuth(true);
+    const ex=endorsements.find(e=>e.user_id===myProfile.id&&e.endorsed_id===otherId);
+    if(ex){await supabase.from("endorsements").delete().eq("id",ex.id);setEndorsements(prev=>prev.filter(e=>e.id!==ex.id));}
+    else{const{data,error}=await supabase.from("endorsements").insert({user_id:myProfile.id,endorsed_id:otherId}).select().single();if(!error){setEndorsements(prev=>[...prev,data]);notify("Endorsed! ⭐");}}
   }
 
-  async function toggleBlock(otherId) {
-    if (!myProfile) return;
-    const existing = blocks.find(b => b.blocker_id===myProfile.id && b.blocked_id===otherId);
-    if (existing) {
-      await supabase.from("blocks").delete().eq("id", existing.id);
-      setBlocks(prev => prev.filter(b => b.id !== existing.id));
-      notify("User unblocked.");
-    } else {
-      const { data, error } = await supabase.from("blocks").insert({ blocker_id: myProfile.id, blocked_id: otherId }).select().single();
-      if (!error) { setBlocks(prev => [...prev, data]); notify("User blocked."); }
-    }
+  async function toggleBlock(otherId){
+    if(!myProfile)return;
+    const ex=blocks.find(b=>b.blocker_id===myProfile.id&&b.blocked_id===otherId);
+    if(ex){await supabase.from("blocks").delete().eq("id",ex.id);setBlocks(prev=>prev.filter(b=>b.id!==ex.id));notify("User unblocked.");}
+    else{const{data,error}=await supabase.from("blocks").insert({blocker_id:myProfile.id,blocked_id:otherId}).select().single();if(!error){setBlocks(prev=>[...prev,data]);notify("User blocked.");}}
   }
 
-  async function reportUser(otherId, reason) {
-    if (!myProfile) return setShowAuth(true);
-    await supabase.from("reports").insert({ reporter_id: myProfile.id, reported_id: otherId, reason });
-    const countRes = await supabase.from("reports").select("id", { count: "exact" }).eq("reported_id", otherId);
-    if ((countRes.count || 0) >= REPORTS_BEFORE_AUTOBLOCK) {
-      notify("Report submitted. This user has been flagged for review.");
-    } else {
-      notify("Report submitted. Thank you for helping keep LebConnect safe.");
-    }
-    setShowReportModal(null);
+  async function reportUser(otherId,reason){
+    if(!myProfile)return;
+    await supabase.from("reports").insert({reporter_id:myProfile.id,reported_id:otherId,reason});
+    notify("Report submitted. Thank you for keeping MLN safe.");
+    setShowReport(null);
   }
 
-  async function sendMessage() {
-    const trimmed = msgInput.trim();
-    if (!trimmed || !myProfile || !activeChat) return;
-    const { allowed, recent } = checkRateLimit(myMsgTimestamps);
-    if (!allowed) {
-      setModerationWarning("You're sending messages too quickly. Please wait a moment.");
-      setTimeout(() => setModerationWarning(null), 4000);
-      return;
-    }
-    if (containsBannedContent(trimmed)) {
-      setModerationWarning("This message was blocked for potentially harassing language. Please be respectful.");
-      setTimeout(() => setModerationWarning(null), 4500);
-      return;
-    }
-    const isFirstMessage = messages.length === 0;
-    setMyMsgTimestamps([...recent, Date.now()]);
-    const { data, error } = await supabase.from("messages").insert({ from_id: myProfile.id, to_id: activeChat, text: trimmed }).select().single();
-    if (!error) {
-      setMessages(prev => [...prev, data]);
-      setMsgInput("");
-      if (isFirstMessage) logEvent("first_message");
-    }
+  async function sendMsg(){
+    const t=msgInput.trim();if(!t||!myProfile||!activeChat)return;
+    const{ok,recent}=rateOk(msgTs);
+    if(!ok){setModWarn("Sending too fast — please slow down.");setTimeout(()=>setModWarn(null),4000);return;}
+    if(hasBanned(t)){setModWarn("Message blocked for inappropriate language. Please be respectful.");setTimeout(()=>setModWarn(null),4500);return;}
+    const first=messages.length===0;
+    setMsgTs([...recent,Date.now()]);
+    const{data,error}=await supabase.from("messages").insert({from_id:myProfile.id,to_id:activeChat,text:t}).select().single();
+    if(!error){setMessages(prev=>[...prev,data]);setMsgInput("");if(first)logEvent("first_message");}
   }
 
-  const filtered = profiles.filter(p => {
-    const q = searchQ.toLowerCase();
-    const mq = !q || [p.name,p.company,p.role,p.industry,p.city,p.country,p.origin].some(f=>f?.toLowerCase().includes(q));
-    const mc = filterCountry==="All countries" || p.country===filterCountry;
-    const mi = filterIndustry==="All industries" || p.industry===filterIndustry;
-    const ml = !filterLived || p.lived_lebanon;
-    const notMe = !myProfile || p.id !== myProfile.id;
-    return mq && mc && mi && ml && notMe;
+  // derived
+  const myConns=connections.filter(c=>(c.user_id===myProfile?.id||c.connected_to===myProfile?.id)&&c.status==="accepted").map(c=>c.user_id===myProfile?.id?c.connected_to:c.user_id);
+  const myPending=connections.filter(c=>c.user_id===myProfile?.id&&c.status==="pending").map(c=>c.connected_to);
+  const myReceived=connections.filter(c=>c.connected_to===myProfile?.id&&c.status==="pending");
+  const myEndorsed=endorsements.filter(e=>e.user_id===myProfile?.id).map(e=>e.endorsed_id);
+  const myBlocks=blocks.filter(b=>b.blocker_id===myProfile?.id).map(b=>b.blocked_id);
+  const chatList=profiles.filter(p=>myConns.includes(p.id));
+  const totalUnread=Object.values(unread).reduce((a,b)=>a+b,0);
+
+  function connLabel(id){if(myConns.includes(id))return"✓ Connected";if(myPending.includes(id))return"⏳ Pending";return"Send request";}
+  function connActive(id){return myConns.includes(id)||myPending.includes(id);}
+
+  const filtered=profiles.filter(p=>{
+    const q=searchQ.toLowerCase();
+    const mq=!q||[p.name,p.company,p.role,p.industry,p.city,p.country].some(f=>f?.toLowerCase().includes(q));
+    const mc=filterCountry==="All countries"||p.country===filterCountry;
+    const mi=filterIndustry==="All industries"||p.industry===filterIndustry;
+    const ml=!filterLived||p.lived_lebanon;
+    return mq&&mc&&mi&&ml&&(!myProfile||p.id!==myProfile.id);
   });
 
-  const myConnections = connections.filter(c => (c.user_id===myProfile?.id || c.connected_to===myProfile?.id) && c.status==="accepted")
-    .map(c => c.user_id===myProfile?.id ? c.connected_to : c.user_id);
-  const myPendingSent = connections.filter(c => c.user_id===myProfile?.id && c.status==="pending").map(c => c.connected_to);
-  const myPendingReceived = connections.filter(c => c.connected_to===myProfile?.id && c.status==="pending");
-  const myEndorsements = endorsements.filter(e => e.user_id === myProfile?.id).map(e => e.endorsed_id);
-  const myBlocks = blocks.filter(b => b.blocker_id === myProfile?.id).map(b => b.blocked_id);
-  const chatList = profiles.filter(p => myConnections.includes(p.id));
-
-  function connectionLabel(otherId) {
-    if (myConnections.includes(otherId)) return "✓ Connected";
-    if (myPendingSent.includes(otherId)) return "⏳ Request sent";
-    return "Send request";
-  }
-
-  const S = {
-    app: {display:"flex",minHeight:"100vh",fontSize:14},
-    sidebar: {width:210,background:"#fff",borderRight:"1px solid #f0ede8",display:"flex",flexDirection:"column",flexShrink:0,position:"sticky",top:0,height:"100vh",overflowY:"auto"},
-    main: {flex:1,padding:"24px 28px",background:"#f8f6f2",minHeight:"100vh"},
-    card: {background:"#fff",border:"1px solid #f0ede8",borderRadius:12,padding:16,marginBottom:12},
-    btn: (primary,danger) => ({padding:"7px 16px",fontSize:12,fontWeight:600,border:danger?"1px solid #ffcdd2":primary?"none":"1px solid #ddd",borderRadius:8,cursor:"pointer",background:danger?"#ffebee":primary?RED:"#fff",color:danger?RED:primary?"#fff":"#444"}),
-    input: {padding:"8px 12px",border:"1px solid #ddd",borderRadius:8,fontSize:13,width:"100%",background:"#fff",color:"#1a1a1a"},
-    navItem: (active) => ({display:"flex",alignItems:"center",gap:10,padding:"10px 16px",fontSize:13,color:active?RED:"#666",cursor:"pointer",background:active?"#FFF5F5":"transparent",borderLeft:`3px solid ${active?RED:"transparent"}`,fontWeight:active?700:400}),
-    chip: (on) => ({padding:"5px 12px",border:`1px solid ${on?RED:"#ddd"}`,borderRadius:20,fontSize:12,cursor:"pointer",background:on?"#FFF0F0":"#fff",color:on?RED:"#666",fontWeight:on?600:400,whiteSpace:"nowrap"}),
-  };
-
-  const navItems = [
+  const navItems=[
     {id:"home",icon:"🏠",label:"Home"},
     {id:"discover",icon:"🔍",label:"Discover"},
-    {id:"requests",icon:"📨",label:"Requests", badge: myPendingReceived.length},
+    {id:"requests",icon:"📨",label:"Requests",badge:myReceived.length},
     {id:"map",icon:"🗺️",label:"World map"},
     {id:"community",icon:"👥",label:"Community"},
-    {id:"messages",icon:"✉️",label:"Messages", badge: Object.values(unreadFrom).reduce((a,b)=>a+b,0)},
+    {id:"messages",icon:"✉️",label:"Messages",badge:totalUnread},
     {id:"myprofile",icon:"🌲",label:"My profile"},
+    {id:"feedback",icon:"💬",label:"Feedback"},
   ];
 
-  function goProfile(p) { setViewProfile(p); setPage("discover"); }
+  if(page==="home") return(
+    <>
+      <HomePage onEnter={()=>setPage("discover")} onSignup={()=>session?setShowCreate(true):setShowAuth(true)} hasProfile={!!myProfile}/>
+      {showAuth&&<AuthScreen onClose={()=>setShowAuth(false)} onAuthed={()=>{setShowAuth(false);setShowCreate(true);}}/>}
+    </>
+  );
 
-  if (page === "home") {
-    return <HomePage onEnter={()=>setPage("discover")} onSignup={()=>session ? setShowCreateProfile(true) : setShowAuth(true)} hasProfile={!!myProfile} />;
-  }
+  return(
+    <div className="app">
+      {toast&&<div className="toast">{toast}</div>}
 
-  return (
-    <div style={S.app}>
-      {notification && <div style={{position:"fixed",top:16,right:16,background:RED,color:"#fff",padding:"10px 18px",borderRadius:10,fontWeight:600,fontSize:13,zIndex:999,boxShadow:"0 4px 20px rgba(0,0,0,.2)"}}>{notification}</div>}
-
-      <div style={S.sidebar}>
-        <div style={{padding:"18px 16px 14px",borderBottom:"1px solid #f0ede8",cursor:"pointer"}} onClick={()=>setPage("home")}>
-          <div style={{fontSize:18,fontWeight:800,color:RED}}>🌲 MLN</div>
-          <div style={{fontSize:11,color:"#aaa",marginTop:3}}>My Lebanese Network</div>
+      {/* SIDEBAR */}
+      <div className="sidebar">
+        <div className="logo-box" style={{cursor:"pointer"}} onClick={()=>setPage("home")}>
+          <div className="logo-name">🌲 MLN</div>
+          <div className="logo-sub">My Lebanese Network</div>
         </div>
         <div style={{flex:1,paddingTop:6}}>
-          {navItems.map(n => (
-            <div key={n.id} style={S.navItem(page===n.id)} onClick={()=>{setPage(n.id);setViewProfile(null);}}>
-              <span style={{fontSize:16}}>{n.icon}</span>{n.label}
-              {n.badge > 0 && <span style={{marginLeft:"auto",background:RED,color:"#fff",fontSize:10,fontWeight:700,borderRadius:10,padding:"1px 6px"}}>{n.badge}</span>}
+          {navItems.map(n=>(
+            <div key={n.id} className={`nav-item${page===n.id?" active":""}`} onClick={()=>{setPage(n.id);setViewProfile(null);}}>
+              <span className="nav-icon">{n.icon}</span>
+              <span className="nav-label">{n.label}</span>
+              {n.badge>0&&<span className="nav-badge">{n.badge}</span>}
             </div>
           ))}
         </div>
-        <div style={{padding:"12px 16px",borderTop:"1px solid #f0ede8"}}>
-          {!session ? (
-            <button style={{...S.btn(true),width:"100%",padding:"9px 0"}} onClick={()=>setShowAuth(true)}>Log in / Sign up</button>
-          ) : !myProfile ? (
-            <button style={{...S.btn(true),width:"100%",padding:"9px 0"}} onClick={()=>setShowCreateProfile(true)}>Create your profile</button>
-          ) : (
+        <div className="sidebar-footer">
+          {!session?(
+            <button className="btn btn-primary" style={{width:"100%",padding:"9px 0"}} onClick={()=>setShowAuth(true)}>Log in</button>
+          ):!myProfile?(
+            <button className="btn btn-primary" style={{width:"100%",padding:"9px 0"}} onClick={()=>setShowCreate(true)}>Create profile</button>
+          ):(
             <>
-              <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"6px 0"}} onClick={()=>setPage("myprofile")}>
-                <Avatar initials={myProfile.initials} color={myProfile.color} bg={myProfile.bg} size={32} photoUrl={myProfile.photo_url}/>
-                <div style={{fontSize:12,fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{myProfile.name}</div>
+              <div className="user-pill" onClick={()=>setPage("myprofile")}>
+                <Av initials={myProfile.initials} color={myProfile.color} bg={myProfile.bg} size={30} photoUrl={myProfile.photo_url}/>
+                <span className="user-name">{myProfile.name}</span>
               </div>
-              <button style={{...S.btn(false),width:"100%",marginTop:8,fontSize:11,padding:"6px 0"}} onClick={handleLogout}>Log out</button>
+              <button className="btn btn-sm" style={{width:"100%",marginTop:8}} onClick={logout}>Log out</button>
             </>
           )}
         </div>
       </div>
 
-      <div style={S.main}>
-        {/* DISCOVER */}
-        {page==="discover" && !viewProfile && (
-          <div>
-            <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Discover Lebanese professionals</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:18}}>{loadingProfiles ? "Loading members…" : `${filtered.length} member${filtered.length!==1?"s":""} found`}</div>
-            <div style={{display:"flex",gap:8,marginBottom:12}}>
-              <input style={{...S.input,flex:1}} placeholder="Search name, company, industry, city…" value={searchQ} onChange={e=>setSearchQ(e.target.value)}/>
+      {/* MAIN */}
+      <div className="main">
+
+        {/* ── DISCOVER ── */}
+        {page==="discover"&&!viewProfile&&(
+          <div className="page">
+            <div className="page-title">Discover</div>
+            <div className="page-sub">Find Lebanese professionals worldwide</div>
+            <div className="live-counter">
+              <div className="counter-item"><div className="counter-num" style={{color:"var(--red)"}}>{liveStats.requests}</div><div className="counter-label">Requests sent</div></div>
+              <div className="counter-item"><div className="counter-num" style={{color:"var(--cedar)"}}>{liveStats.accepted}</div><div className="counter-label">Connections made</div></div>
+              <div className="counter-item"><div className="counter-num" style={{color:"#1D4ED8"}}>{liveStats.messages}</div><div className="counter-label">Conversations started</div></div>
             </div>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18}}>
-              <select style={{...S.input,width:"auto"}} value={filterCountry} onChange={e=>setFilterCountry(e.target.value)}>{COUNTRIES.map(c=><option key={c}>{c}</option>)}</select>
-              <select style={{...S.input,width:"auto"}} value={filterIndustry} onChange={e=>setFilterIndustry(e.target.value)}>{INDUSTRIES.map(i=><option key={i}>{i}</option>)}</select>
-              <div style={S.chip(filterLived)} onClick={()=>setFilterLived(!filterLived)}>🌲 Lived in Lebanon</div>
+            <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+              <input className="inp" style={{flex:1,minWidth:200}} placeholder="Search name, company, role, city…" value={searchQ} onChange={e=>setSearchQ(e.target.value)}/>
             </div>
-            <div style={{display:"flex",gap:18,alignItems:"center",marginBottom:18,flexWrap:"wrap"}}>
-              <div style={{...S.card,marginBottom:0,padding:"12px 18px",display:"flex",gap:18}}>
-                <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:RED}}>{liveStats.requests}</div><div style={{fontSize:10,color:"#aaa"}}>Requests sent</div></div>
-                <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:CEDAR}}>{liveStats.accepted}</div><div style={{fontSize:10,color:"#aaa"}}>Connections made</div></div>
-                <div style={{textAlign:"center"}}><div style={{fontSize:18,fontWeight:800,color:"#1565C0"}}>{liveStats.messages}</div><div style={{fontSize:10,color:"#aaa"}}>Conversations started</div></div>
-              </div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:18,alignItems:"center"}}>
+              <select className="inp" style={{width:"auto"}} value={filterCountry} onChange={e=>setFilterCountry(e.target.value)}>{COUNTRIES.map(c=><option key={c}>{c}</option>)}</select>
+              <select className="inp" style={{width:"auto"}} value={filterIndustry} onChange={e=>setFilterIndustry(e.target.value)}>{INDUSTRIES.map(i=><option key={i}>{i}</option>)}</select>
+              <div className={`chip${filterLived?" on":""}`} onClick={()=>setFilterLived(!filterLived)}>🌲 Lived in Lebanon</div>
+              {(searchQ||filterCountry!=="All countries"||filterIndustry!=="All industries"||filterLived)&&<div className="chip" onClick={()=>{setSearchQ("");setFilterCountry("All countries");setFilterIndustry("All industries");setFilterLived(false);}}>✕ Clear</div>}
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(175px,1fr))",gap:12}}>
+            <div style={{fontSize:12,color:"var(--text-3)",marginBottom:16}}>{loading?"Loading…":`${filtered.length} member${filtered.length!==1?"s":""} found`}</div>
+            <div className="profile-grid">
               {filtered.map(p=>(
-                <div key={p.id} style={{...S.card,textAlign:"center",cursor:"pointer",marginBottom:0}} onClick={()=>goProfile(p)}>
-                  <div style={{display:"flex",justifyContent:"center",marginBottom:10}}><Avatar initials={p.initials} color={p.color} bg={p.bg} size={48} photoUrl={p.photo_url}/></div>
-                  <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{p.name}</div>
-                  <div style={{fontSize:11,color:"#888",marginBottom:6}}>{[p.role,p.company].filter(Boolean).join(" · ")}</div>
-                  {(p.city || p.country) && (
-                    <div style={{display:"inline-flex",alignItems:"center",gap:4,background:"#E3F2FD",borderRadius:14,padding:"3px 10px",marginBottom:8,fontSize:11,fontWeight:700,color:"#0D47A1"}}>
-                      📍 {[p.city,p.country].filter(Boolean).join(", ")}
-                    </div>
-                  )}
-                  {p.lived_lebanon && <div style={{marginBottom:8}}><Badge>🌲 Lived in Lebanon</Badge></div>}
-                  <button style={S.btn(myConnections.includes(p.id))} onClick={e=>{e.stopPropagation();sendConnectionRequest(p.id);}}>{connectionLabel(p.id)}</button>
+                <div key={p.id} className="profile-card" onClick={()=>setViewProfile(p)}>
+                  <div style={{display:"flex",justifyContent:"center"}}><Av initials={p.initials} color={p.color} bg={p.bg} size={52} photoUrl={p.photo_url}/></div>
+                  <div className="profile-name">{p.name}</div>
+                  <div className="profile-role">{[p.role,p.company].filter(Boolean).join(" · ")}</div>
+                  {(p.city||p.country)&&<div style={{display:"inline-flex",alignItems:"center",gap:4,background:"#EFF6FF",borderRadius:14,padding:"3px 9px",marginBottom:8,fontSize:11,fontWeight:500,color:"#1D4ED8"}}>📍 {[p.city,p.country].filter(Boolean).join(", ")}</div>}
+                  {p.lived_lebanon&&<div style={{marginBottom:10}}><Badge variant="cedar">🌲 Lived in Lebanon</Badge></div>}
+                  <button className={`btn btn-sm${connActive(p.id)?" btn-active":""}`} onClick={e=>{e.stopPropagation();sendRequest(p.id);}}>{connLabel(p.id)}</button>
                 </div>
               ))}
             </div>
-            {!loadingProfiles && filtered.length===0 && <div style={{textAlign:"center",color:"#bbb",marginTop:80}}>No members found yet. Be the first to join!</div>}
+            {!loading&&filtered.length===0&&<div style={{textAlign:"center",color:"var(--text-3)",marginTop:80,fontSize:16}}>No members found.<br/><span style={{fontSize:13}}>Try adjusting your filters.</span></div>}
           </div>
         )}
 
-        {/* REQUESTS */}
-        {page==="requests" && (
-          <div style={{maxWidth:560}}>
-            <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Connection requests</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:18}}>People who want to connect with you</div>
-            {!myProfile ? (
-              <div style={{...S.card,textAlign:"center",padding:40}}>Create a profile to receive connection requests.</div>
-            ) : myPendingReceived.length===0 ? (
-              <div style={{...S.card,textAlign:"center",padding:40,color:"#bbb"}}>No pending requests right now.</div>
-            ) : myPendingReceived.map(req => {
-              const sender = profiles.find(p => p.id === req.user_id);
-              if (!sender) return null;
-              return (
-                <div key={req.id} style={S.card}>
-                  <div style={{display:"flex",alignItems:"center",gap:14}}>
-                    <Avatar initials={sender.initials} color={sender.color} bg={sender.bg} size={48} photoUrl={sender.photo_url}/>
-                    <div style={{flex:1}}>
-                      <div style={{fontWeight:700,fontSize:14}}>{sender.name}</div>
-                      <div style={{fontSize:12,color:"#888"}}>{[sender.role,sender.company].filter(Boolean).join(" · ")}</div>
-                      <div style={{fontSize:11,color:"#aaa"}}>📍 {[sender.city,sender.country].filter(Boolean).join(", ")}</div>
+        {/* ── PROFILE DETAIL ── */}
+        {page==="discover"&&viewProfile&&(
+          <div className="page-sm">
+            <button className="btn btn-sm" style={{marginBottom:20}} onClick={()=>setViewProfile(null)}>← Back</button>
+            <div className="card">
+              <div className="profile-header-card">
+                <Av initials={viewProfile.initials} color={viewProfile.color} bg={viewProfile.bg} size={72} photoUrl={viewProfile.photo_url}/>
+                <div style={{flex:1}}>
+                  <div className="profile-detail-name">{viewProfile.name}</div>
+                  <div style={{fontSize:13,color:"var(--text-2)",marginBottom:8}}>{[viewProfile.role,viewProfile.company].filter(Boolean).join(" · ")}</div>
+                  {(viewProfile.city||viewProfile.country)&&<div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:20,padding:"5px 12px",marginBottom:10,fontSize:12,fontWeight:600,color:"#1D4ED8"}}>📍 Currently in {[viewProfile.city,viewProfile.country].filter(Boolean).join(", ")}</div>}
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
+                    {viewProfile.lived_lebanon&&<Badge variant="cedar">🌲 Lived in Lebanon</Badge>}
+                    {viewProfile.industry&&<Badge variant="gray">{viewProfile.industry}</Badge>}
+                    {viewProfile.languages?.map(l=><Badge key={l} variant="gray">{l}</Badge>)}
+                  </div>
+                  <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+                    <button className={`btn${connActive(viewProfile.id)?" btn-active":""}`} onClick={()=>sendRequest(viewProfile.id)}>{connLabel(viewProfile.id)}</button>
+                    <button className="btn" onClick={()=>{if(!myProfile)return setShowAuth(true);if(!myConns.includes(viewProfile.id))return notify("Connect first to message.");openChat(viewProfile.id);setPage("messages");}}>✉️ Message</button>
+                    {(viewProfile.share_email||viewProfile.share_phone)&&myConns.includes(viewProfile.id)&&(
+                      <button className="btn" onClick={()=>setShowContact(viewProfile)}>Contact info</button>
+                    )}
+                    <button className={`btn${myEndorsed.includes(viewProfile.id)?" btn-active":""}`} onClick={()=>toggleEndorse(viewProfile.id)}>{myEndorsed.includes(viewProfile.id)?"★ Endorsed":"☆ Endorse"}</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            {viewProfile.bio&&<div className="card"><div className="section-label">About</div><div style={{fontSize:13,color:"var(--text-2)",lineHeight:1.75}}>{viewProfile.bio}</div></div>}
+            {/* moderation */}
+            <div style={{display:"flex",gap:8,marginTop:8}}>
+              <button className="btn btn-sm" onClick={()=>setShowReport(viewProfile.id)}>⚠️ Report</button>
+              <button className={`btn btn-sm${myBlocks.includes(viewProfile.id)?" btn-danger":""}`} onClick={()=>toggleBlock(viewProfile.id)}>{myBlocks.includes(viewProfile.id)?"Unblock":"🚫 Block"}</button>
+            </div>
+          </div>
+        )}
+
+        {/* ── REQUESTS ── */}
+        {page==="requests"&&(
+          <div className="page-sm">
+            <div className="page-title">Connection requests</div>
+            <div className="page-sub">People who want to connect with you</div>
+            {!myProfile?(
+              <div className="card" style={{textAlign:"center",padding:40,color:"var(--text-3)"}}>Create a profile to receive requests.</div>
+            ):myReceived.length===0?(
+              <div className="card" style={{textAlign:"center",padding:40,color:"var(--text-3)"}}>No pending requests right now.</div>
+            ):myReceived.map(req=>{
+              const s=profiles.find(p=>p.id===req.user_id);if(!s)return null;
+              return(
+                <div key={req.id} className="card">
+                  <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+                    <Av initials={s.initials} color={s.color} bg={s.bg} size={50} photoUrl={s.photo_url}/>
+                    <div style={{flex:1,minWidth:120}}>
+                      <div style={{fontFamily:"var(--serif)",fontSize:16,fontWeight:600}}>{s.name}</div>
+                      <div style={{fontSize:12,color:"var(--text-2)"}}>{[s.role,s.company].filter(Boolean).join(" · ")}</div>
+                      <div style={{fontSize:11,color:"var(--text-3)"}}>📍 {[s.city,s.country].filter(Boolean).join(", ")}</div>
                     </div>
-                    <div style={{display:"flex",gap:6}}>
-                      <button style={S.btn(true)} onClick={()=>respondToRequest(req.id,true)}>Accept</button>
-                      <button style={S.btn(false)} onClick={()=>respondToRequest(req.id,false)}>Decline</button>
+                    <div style={{display:"flex",gap:8}}>
+                      <button className="btn btn-primary btn-sm" onClick={()=>respond(req.id,true)}>Accept</button>
+                      <button className="btn btn-sm" onClick={()=>respond(req.id,false)}>Decline</button>
                     </div>
                   </div>
                 </div>
@@ -761,145 +760,104 @@ function App() {
           </div>
         )}
 
-        {/* PROFILE VIEW */}
-        {page==="discover" && viewProfile && (
-          <div style={{maxWidth:580}}>
-            <button style={{...S.btn(false),marginBottom:18}} onClick={()=>setViewProfile(null)}>← Back to discover</button>
-            <div style={S.card}>
-              <div style={{display:"flex",gap:18,alignItems:"flex-start",flexWrap:"wrap"}}>
-                <Avatar initials={viewProfile.initials} color={viewProfile.color} bg={viewProfile.bg} size={68} photoUrl={viewProfile.photo_url}/>
-                <div style={{flex:1,minWidth:200}}>
-                  <div style={{fontSize:20,fontWeight:800,marginBottom:2}}>{viewProfile.name}</div>
-                  <div style={{fontSize:13,color:"#888",marginBottom:6}}>{[viewProfile.role,viewProfile.company].filter(Boolean).join(" · ")}</div>
-                  {(viewProfile.city || viewProfile.country) && (
-                    <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#E3F2FD",border:"1px solid #BBDEFB",borderRadius:20,padding:"5px 12px",marginBottom:12,fontSize:13,fontWeight:700,color:"#0D47A1"}}>
-                      📍 Currently living in {[viewProfile.city,viewProfile.country].filter(Boolean).join(", ")}
-                    </div>
-                  )}
-                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
-                    {viewProfile.lived_lebanon && <Badge color={CEDAR} bg="#E8F5E9">🌲 Lived in Lebanon</Badge>}
-                    {viewProfile.industry && <Badge color="#555" bg="#f0f0f0">{viewProfile.industry}</Badge>}
-                    {viewProfile.languages?.map(l=><Badge key={l} color="#555" bg="#f8f8f8">{l}</Badge>)}
-                  </div>
-                  <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
-                    <button style={S.btn(myConnections.includes(viewProfile.id))} onClick={()=>sendConnectionRequest(viewProfile.id)}>{connectionLabel(viewProfile.id)}</button>
-                    <button style={S.btn(false)} onClick={()=>{if(!myProfile){setShowAuth(true);return;} if(!myConnections.includes(viewProfile.id)){notify("Connect first to send a message.");return;} setActiveChat(viewProfile.id);setPage("messages");}}>✉️ Message</button>
-                    <button style={S.btn(false)} onClick={()=>notify("Contact info request sent!")}>Request contact info</button>
-                    <button style={S.btn(myEndorsements.includes(viewProfile.id))} onClick={()=>toggleEndorse(viewProfile.id)}>{myEndorsements.includes(viewProfile.id)?"★ Endorsed":"☆ Endorse"}</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            {viewProfile.bio && <div style={S.card}><SectionLabel>About</SectionLabel><div style={{fontSize:13,color:"#555",lineHeight:1.75}}>{viewProfile.bio}</div></div>}
-          </div>
-        )}
-
-        {/* MAP */}
-        {page==="map" && (
-          <div>
-            <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Lebanese worldwide 🌍</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:18}}>Hover over dots to explore — click to browse that country</div>
-            <div style={{background:"#fff",border:"1px solid #f0ede8",borderRadius:16,padding:16,marginBottom:20}}>
+        {/* ── MAP ── */}
+        {page==="map"&&(
+          <div className="page">
+            <div className="page-title">Lebanese worldwide 🌍</div>
+            <div className="page-sub">Hover over dots to explore — click to filter by country</div>
+            <div className="map-box">
               <svg viewBox="0 0 100 80" style={{width:"100%",height:"auto",display:"block"}}>
-                <rect width="100" height="80" fill="#ddeef7" rx="4"/>
-                <ellipse cx="48" cy="34" rx="13" ry="10" fill="#b8d8a0" opacity=".8"/><ellipse cx="20" cy="37" rx="11" ry="13" fill="#b8d8a0" opacity=".8"/>
-                <ellipse cx="26" cy="63" rx="7" ry="8" fill="#b8d8a0" opacity=".8"/><ellipse cx="65" cy="44" rx="14" ry="10" fill="#b8d8a0" opacity=".8"/>
-                <ellipse cx="83" cy="65" rx="7" ry="6" fill="#b8d8a0" opacity=".8"/>
-                {MAP_DOTS.map(d=>{
-                  const r = Math.max(1.3,Math.min(3.8,d.members/1100)); const isH = mapHover===d.name;
-                  return (
-                    <g key={d.name} style={{cursor:"pointer"}} onMouseEnter={()=>setMapHover(d.name)} onMouseLeave={()=>setMapHover(null)}
-                      onClick={()=>{const c=d.name==="USA"?"United States":d.name;setFilterCountry(COUNTRIES.includes(c)?c:"All countries");setPage("discover");}}>
-                      <circle cx={d.x} cy={d.y} r={r+1.5} fill={RED} opacity=".12"/>
-                      <circle cx={d.x} cy={d.y} r={r} fill={isH?"#a00000":RED} opacity={isH?1:.8}/>
-                      {isH && <><rect x={d.x-11} y={d.y-10} width={22} height={8} rx={2} fill="white" stroke="#ddd" strokeWidth=".4"/><text x={d.x} y={d.y-5.5} textAnchor="middle" fontSize="2.8" fill="#222" fontWeight="700">{d.name}</text><text x={d.x} y={d.y-2.5} textAnchor="middle" fontSize="2.2" fill="#888">{d.members.toLocaleString()} members</text></>}
-                    </g>
-                  );
-                })}
+                <rect width="100" height="80" fill="#DBEAFE" rx="4"/>
+                <ellipse cx="48" cy="34" rx="13" ry="10" fill="#BBF7D0" opacity=".8"/><ellipse cx="20" cy="37" rx="11" ry="13" fill="#BBF7D0" opacity=".8"/>
+                <ellipse cx="26" cy="63" rx="7" ry="8" fill="#BBF7D0" opacity=".8"/><ellipse cx="65" cy="44" rx="14" ry="10" fill="#BBF7D0" opacity=".8"/>
+                <ellipse cx="83" cy="65" rx="7" ry="6" fill="#BBF7D0" opacity=".8"/>
+                {MAP_DOTS.map(d=>{const r=Math.max(1.3,Math.min(3.8,d.members/1100)),isH=mapHover===d.name;return(
+                  <g key={d.name} style={{cursor:"pointer"}} onMouseEnter={()=>setMapHover(d.name)} onMouseLeave={()=>setMapHover(null)}
+                    onClick={()=>{const c=d.name==="USA"?"United States":d.name;setFilterCountry(COUNTRIES.includes(c)?c:"All countries");setPage("discover");}}>
+                    <circle cx={d.x} cy={d.y} r={r+1.5} fill="#B91C1C" opacity=".12"/>
+                    <circle cx={d.x} cy={d.y} r={r} fill={isH?"#7F1D1D":"#B91C1C"} opacity={isH?1:.8}/>
+                    {isH&&<><rect x={d.x-12} y={d.y-11} width={24} height={9} rx={2} fill="white" stroke="#e5e7eb" strokeWidth=".3"/><text x={d.x} y={d.y-6} textAnchor="middle" fontSize="2.8" fill="#1C1917" fontWeight="600">{d.name}</text><text x={d.x} y={d.y-2.5} textAnchor="middle" fontSize="2.2" fill="#78716C">{d.members.toLocaleString()}</text></>}
+                  </g>
+                );})}
               </svg>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:10}}>
+            <div className="country-grid">
               {[...MAP_DOTS].sort((a,b)=>b.members-a.members).map(d=>(
-                <div key={d.name} style={{...S.card,padding:"12px 14px",cursor:"pointer",marginBottom:0}} onClick={()=>{const c=d.name==="USA"?"United States":d.name;setFilterCountry(COUNTRIES.includes(c)?c:"All countries");setPage("discover");}}>
-                  <div style={{fontWeight:700,fontSize:13}}>{d.name}</div>
-                  <div style={{fontSize:11,color:"#aaa",margin:"3px 0 8px"}}>{d.members.toLocaleString()} members</div>
-                  <div style={{height:4,background:"#f0ede8",borderRadius:2}}><div style={{height:4,background:RED,borderRadius:2,width:`${Math.round(d.members/41.2)}%`}}/></div>
+                <div key={d.name} className="country-card" onClick={()=>{const c=d.name==="USA"?"United States":d.name;setFilterCountry(COUNTRIES.includes(c)?c:"All countries");setPage("discover");}}>
+                  <div style={{fontWeight:600,fontSize:13}}>{d.name}</div>
+                  <div style={{fontSize:11,color:"var(--text-3)",margin:"3px 0 8px"}}>{d.members.toLocaleString()} members</div>
+                  <div style={{height:3,background:"var(--stone)",borderRadius:2}}><div style={{height:3,background:"var(--red)",borderRadius:2,width:`${Math.round(d.members/41.2)}%`}}/></div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* COMMUNITY */}
-        {page==="community" && (
-          <div>
-            <div style={{fontSize:22,fontWeight:800,marginBottom:4}}>Community groups</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:18}}>Connect with Lebanese by country, industry, or alma mater</div>
-            <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>{["All","Country","Industry","Alma Mater"].map(f=><div key={f} style={S.chip(groupFilter===f)} onClick={()=>setGroupFilter(f)}>{f}</div>)}</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:12}}>
+        {/* ── COMMUNITY ── */}
+        {page==="community"&&(
+          <div className="page">
+            <div className="page-title">Community</div>
+            <div className="page-sub">Groups by country, industry, and alma mater</div>
+            <div style={{display:"flex",gap:8,marginBottom:20,flexWrap:"wrap"}}>
+              {["All","Country","Industry","Alma Mater"].map(f=><div key={f} className={`chip${groupFilter===f?" on":""}`} onClick={()=>setGroupFilter(f)}>{f}</div>)}
+            </div>
+            <div className="group-grid">
               {GROUPS.filter(g=>groupFilter==="All"||g.type===groupFilter).map(g=>(
-                <div key={g.name} style={{...S.card,cursor:"pointer",marginBottom:0}} onClick={()=>notify(`Joined "${g.name}"! 🎉`)}>
-                  <div style={{fontSize:26,marginBottom:8}}>{g.icon}</div>
-                  <div style={{fontWeight:700,fontSize:14,marginBottom:3}}>{g.name}</div>
-                  <div style={{fontSize:12,color:"#aaa",marginBottom:10}}>{g.members.toLocaleString()} members</div>
-                  <span style={{fontSize:10,padding:"3px 8px",borderRadius:10,background:g.type==="Country"?"#FFEBEE":g.type==="Industry"?"#E3F2FD":"#E8F5E9",color:g.type==="Country"?RED:g.type==="Industry"?"#1565C0":CEDAR,fontWeight:600}}>{g.type}</span>
+                <div key={g.name} className="group-card" onClick={()=>notify(`Joined "${g.name}"! 🎉`)}>
+                  <div style={{fontSize:24,marginBottom:8}}>{g.icon}</div>
+                  <div style={{fontFamily:"var(--serif)",fontSize:15,fontWeight:600,marginBottom:3}}>{g.name}</div>
+                  <div style={{fontSize:12,color:"var(--text-3)",marginBottom:10}}>{g.members.toLocaleString()} members</div>
+                  <span className={`badge badge-${g.type==="Country"?"red":g.type==="Industry"?"blue":"cedar"}`}>{g.type}</span>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        {/* MESSAGES */}
-        {page==="messages" && (
-          <div>
-            <div style={{fontSize:22,fontWeight:800,marginBottom:18}}>Messages</div>
-            {!myProfile ? (
-              <div style={{...S.card,textAlign:"center",padding:40}}>Create a profile and connect with people to start messaging.</div>
-            ) : (
-            <div style={{display:"flex",border:"1px solid #f0ede8",borderRadius:12,overflow:"hidden",background:"#fff",height:520}}>
-              <div style={{width:190,borderRight:"1px solid #f0ede8",overflowY:"auto",flexShrink:0}}>
-                <div style={{padding:"10px 12px 8px",fontSize:10,fontWeight:700,color:"#aaa",textTransform:"uppercase",borderBottom:"1px solid #f0ede8"}}>Your connections</div>
-                {chatList.length===0 && <div style={{padding:14,fontSize:12,color:"#bbb"}}>Connect with people first to message them.</div>}
+        {/* ── MESSAGES ── */}
+        {page==="messages"&&(
+          <div className="page">
+            <div className="page-title">Messages</div>
+            {!myProfile?(
+              <div className="card" style={{textAlign:"center",padding:40,color:"var(--text-3)"}}>Create a profile and connect with people to start messaging.</div>
+            ):(
+            <div className="msg-layout">
+              <div className="msg-list">
+                <div style={{padding:"10px 12px 8px",fontSize:10,fontWeight:600,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".07em",borderBottom:"1px solid var(--border)"}}>Conversations</div>
+                {chatList.length===0&&<div style={{padding:14,fontSize:12,color:"var(--text-3)"}}>Connect with people first.</div>}
                 {chatList.map(p=>(
-                  <div key={p.id} style={{padding:"10px 12px",cursor:"pointer",background:activeChat===p.id?"#FFF5F5":"transparent",borderLeft:`3px solid ${activeChat===p.id?RED:"transparent"}`,opacity:myBlocks.includes(p.id)?.5:1}} onClick={()=>openChat(p.id)}>
+                  <div key={p.id} className={`msg-item${activeChat===p.id?" active":""}`} style={{opacity:myBlocks.includes(p.id)?.5:1}} onClick={()=>openChat(p.id)}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <Avatar initials={p.initials} color={p.color} bg={p.bg} size={30} photoUrl={p.photo_url}/>
-                      <div style={{fontSize:12,fontWeight:700,flex:1}}>{p.name.split(" ")[0]}{myBlocks.includes(p.id)?" 🚫":""}</div>
-                      {unreadFrom[p.id] > 0 && <span style={{background:RED,color:"#fff",fontSize:10,fontWeight:700,borderRadius:10,padding:"1px 6px"}}>{unreadFrom[p.id]}</span>}
+                      <Av initials={p.initials} color={p.color} bg={p.bg} size={30} photoUrl={p.photo_url}/>
+                      <div style={{fontSize:12,fontWeight:500,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name.split(" ")[0]}{myBlocks.includes(p.id)?" 🚫":""}</div>
+                      {unread[p.id]>0&&<span className="nav-badge">{unread[p.id]}</span>}
                     </div>
                   </div>
                 ))}
               </div>
-              <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+              <div className="msg-body">
                 {(()=>{
-                  const p = profiles.find(x=>x.id===activeChat);
-                  if(!p) return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#bbb"}}>Select a conversation</div>;
-                  const isBlocked = myBlocks.includes(p.id);
-                  return <>
-                    <div style={{padding:"12px 16px",borderBottom:"1px solid #f0ede8",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10}}><Avatar initials={p.initials} color={p.color} bg={p.bg} size={32} photoUrl={p.photo_url}/><div style={{fontWeight:700,fontSize:13}}>{p.name}</div></div>
+                  const p=profiles.find(x=>x.id===activeChat);
+                  if(!p)return <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-3)"}}>Select a conversation</div>;
+                  const blocked=myBlocks.includes(p.id);
+                  return<>
+                    <div className="msg-header">
+                      <div style={{display:"flex",alignItems:"center",gap:10}}><Av initials={p.initials} color={p.color} bg={p.bg} size={32} photoUrl={p.photo_url}/><div><div style={{fontWeight:600,fontSize:13}}>{p.name}</div><div style={{fontSize:11,color:"var(--text-3)"}}>{p.city}</div></div></div>
                       <div style={{display:"flex",gap:6}}>
-                        <button style={{...S.btn(false),padding:"5px 10px",fontSize:11}} onClick={()=>setShowReportModal(p.id)}>⚠️ Report</button>
-                        <button style={{...S.btn(isBlocked,true),padding:"5px 10px",fontSize:11}} onClick={()=>toggleBlock(p.id)}>{isBlocked?"Unblock":"🚫 Block"}</button>
+                        <button className="btn btn-sm" onClick={()=>setShowReport(p.id)}>⚠️</button>
+                        <button className={`btn btn-sm${blocked?" btn-danger":""}`} onClick={()=>toggleBlock(p.id)}>{blocked?"Unblock":"🚫"}</button>
                       </div>
                     </div>
-                    {moderationWarning && <div style={{margin:"10px 14px 0",padding:"8px 12px",background:"#FFF3E0",border:"1px solid #FFE0B2",borderRadius:8,fontSize:12,color:"#E65100"}}>⚠️ {moderationWarning}</div>}
-                    {isBlocked ? (
-                      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"#bbb",fontSize:13,padding:20,textAlign:"center"}}>You've blocked this user.</div>
-                    ) : (
-                    <div style={{flex:1,padding:14,overflowY:"auto",display:"flex",flexDirection:"column",gap:8}}>
-                      {messages.map((m,i)=>(
-                        <div key={i} style={{alignSelf:m.from_id===myProfile.id?"flex-end":"flex-start",maxWidth:"72%",background:m.from_id===myProfile.id?"#FFEBEE":"#f8f6f2",border:`1px solid ${m.from_id===myProfile.id?"#f5c6c6":"#eee"}`,borderRadius:10,padding:"8px 13px",fontSize:13,color:m.from_id===myProfile.id?RED:"#333"}}>{m.text}</div>
-                      ))}
-                      <div ref={messagesEndRef}/>
+                    {modWarn&&<div style={{margin:"8px 14px 0",padding:"8px 12px",background:"#FFF7ED",border:"1px solid #FED7AA",borderRadius:8,fontSize:12,color:"#C2410C"}}>⚠️ {modWarn}</div>}
+                    {blocked?(
+                      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",color:"var(--text-3)",fontSize:13,padding:20,textAlign:"center"}}>You've blocked this user.</div>
+                    ):(
+                    <div className="msg-thread">
+                      {messages.map((m,i)=><div key={i} className={`bubble${m.from_id===myProfile.id?" bubble-me":" bubble-them"}`}>{m.text}</div>)}
+                      <div ref={msgEnd}/>
                     </div>
                     )}
-                    {!isBlocked && (
-                    <div style={{padding:10,borderTop:"1px solid #f0ede8",display:"flex",gap:8}}>
-                      <input style={S.input} placeholder="Write a message…" value={msgInput} onChange={e=>setMsgInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") sendMessage();}}/>
-                      <button style={{...S.btn(true),whiteSpace:"nowrap"}} onClick={sendMessage}>Send</button>
-                    </div>
-                    )}
+                    {!blocked&&<div className="msg-input-row"><input className="inp" placeholder="Write a message…" value={msgInput} onChange={e=>setMsgInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")sendMsg();}}/><button className="btn btn-primary" onClick={sendMsg}>Send</button></div>}
                   </>;
                 })()}
               </div>
@@ -908,51 +866,55 @@ function App() {
           </div>
         )}
 
-        {/* MY PROFILE */}
-        {page==="myprofile" && (
-          <div style={{maxWidth:580}}>
-            <div style={{fontSize:22,fontWeight:800,marginBottom:18}}>My profile</div>
-            {!session ? (
-              <div style={{...S.card,textAlign:"center",padding:50}}>
-                <div style={{fontSize:48,marginBottom:12}}>🌲</div>
-                <div style={{fontSize:17,fontWeight:700,marginBottom:8}}>Join My Lebanese Network</div>
-                <div style={{fontSize:13,color:"#888",marginBottom:24}}>Create an account to build your profile</div>
-                <button style={{...S.btn(true),padding:"11px 28px",fontSize:14}} onClick={()=>setShowAuth(true)}>Log in / Sign up</button>
+        {/* ── MY PROFILE ── */}
+        {page==="myprofile"&&(
+          <div className="page-sm">
+            <div className="page-title">My profile</div>
+            {!session?(
+              <div className="card" style={{textAlign:"center",padding:50}}>
+                <div style={{fontFamily:"var(--serif)",fontSize:32,marginBottom:12}}>🌲</div>
+                <div style={{fontFamily:"var(--serif)",fontSize:20,fontWeight:600,marginBottom:8}}>Join My Lebanese Network</div>
+                <div style={{fontSize:13,color:"var(--text-2)",marginBottom:24}}>Create an account to connect with Lebanese professionals worldwide</div>
+                <button className="btn btn-primary" style={{padding:"11px 28px",fontSize:14}} onClick={()=>setShowAuth(true)}>Log in or sign up</button>
               </div>
-            ) : !myProfile ? (
-              <div style={{...S.card,textAlign:"center",padding:50}}>
-                <div style={{fontSize:48,marginBottom:12}}>👋</div>
-                <div style={{fontSize:17,fontWeight:700,marginBottom:8}}>Almost there!</div>
-                <div style={{fontSize:13,color:"#888",marginBottom:24}}>You're logged in — now create your profile</div>
-                <button style={{...S.btn(true),padding:"11px 28px",fontSize:14}} onClick={()=>setShowCreateProfile(true)}>Create my profile</button>
+            ):!myProfile?(
+              <div className="card" style={{textAlign:"center",padding:50}}>
+                <div style={{fontFamily:"var(--serif)",fontSize:32,marginBottom:12}}>👋</div>
+                <div style={{fontFamily:"var(--serif)",fontSize:20,fontWeight:600,marginBottom:8}}>Almost there</div>
+                <div style={{fontSize:13,color:"var(--text-2)",marginBottom:24}}>You're logged in — now create your profile</div>
+                <button className="btn btn-primary" style={{padding:"11px 28px",fontSize:14}} onClick={()=>setShowCreate(true)}>Create my profile</button>
               </div>
-            ) : (
+            ):(
               <>
-                <div style={S.card}>
+                <div className="card">
                   <div style={{display:"flex",gap:16,alignItems:"flex-start",flexWrap:"wrap"}}>
-                    <Avatar initials={myProfile.initials} color={myProfile.color} bg={myProfile.bg} size={64} photoUrl={myProfile.photo_url}/>
-                    <div style={{flex:1,minWidth:200}}>
-                      <div style={{fontSize:19,fontWeight:800,marginBottom:2}}>{myProfile.name}</div>
-                      <div style={{fontSize:13,color:"#888",marginBottom:6}}>{[myProfile.role,myProfile.company].filter(Boolean).join(" · ")}</div>
-                      {(myProfile.city || myProfile.country) && (
-                        <div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#E3F2FD",border:"1px solid #BBDEFB",borderRadius:20,padding:"5px 12px",marginBottom:10,fontSize:13,fontWeight:700,color:"#0D47A1"}}>
-                          📍 Currently living in {[myProfile.city,myProfile.country].filter(Boolean).join(", ")}
-                        </div>
-                      )}
+                    <div style={{position:"relative"}}>
+                      <Av initials={myProfile.initials} color={myProfile.color} bg={myProfile.bg} size={68} photoUrl={myProfile.photo_url}/>
+                      <label style={{position:"absolute",bottom:0,right:0,background:"#fff",border:"1px solid var(--border-2)",borderRadius:"50%",width:24,height:24,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:12}}>
+                        📷<input type="file" accept="image/*" style={{display:"none"}} onChange={changePhoto}/>
+                      </label>
+                    </div>
+                    <div style={{flex:1}}>
+                      <div style={{fontFamily:"var(--serif)",fontSize:20,fontWeight:700,marginBottom:2}}>{myProfile.name}</div>
+                      <div style={{fontSize:13,color:"var(--text-2)",marginBottom:6}}>{[myProfile.role,myProfile.company].filter(Boolean).join(" · ")}</div>
+                      {(myProfile.city||myProfile.country)&&<div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:20,padding:"4px 12px",marginBottom:10,fontSize:12,fontWeight:500,color:"#1D4ED8"}}>📍 {[myProfile.city,myProfile.country].filter(Boolean).join(", ")}</div>}
                       <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
-                        {myProfile.lived_lebanon && <Badge color={CEDAR} bg="#E8F5E9">🌲 Lived in Lebanon</Badge>}
-                        {myProfile.languages?.map(l=><Badge key={l} color="#555" bg="#f8f8f8">{l}</Badge>)}
+                        {myProfile.lived_lebanon&&<Badge variant="cedar">🌲 Lived in Lebanon</Badge>}
+                        {myProfile.languages?.map(l=><Badge key={l} variant="gray">{l}</Badge>)}
                       </div>
-                      <button style={S.btn(false)} onClick={()=>{const parts=myProfile.name.split(" ");setEditForm({...myProfile,firstName:parts[0]||"",lastName:parts.slice(1).join(" ")||"",languages:myProfile.languages?.join(", ")||""});setShowEditProfile(true);}}>✏️ Edit profile</button>
+                      <button className="btn btn-sm" onClick={()=>{const parts=myProfile.name.split(" ");setEditForm({...myProfile,firstName:parts[0]||"",lastName:parts.slice(1).join(" ")||"",languages:myProfile.languages?.join(", ")||""});setShowEdit(true);}}>✏️ Edit profile</button>
                     </div>
                   </div>
-                  {myProfile.bio && <div style={{marginTop:14,fontSize:13,color:"#555",lineHeight:1.75,borderTop:"1px solid #f5f0eb",paddingTop:12}}>{myProfile.bio}</div>}
+                  {myProfile.bio&&<div style={{marginTop:14,fontSize:13,color:"var(--text-2)",lineHeight:1.75,borderTop:"1px solid var(--border)",paddingTop:14}}>{myProfile.bio}</div>}
                 </div>
-                <div style={S.card}>
-                  <SectionLabel>Your stats</SectionLabel>
+                <div className="card">
+                  <div className="section-label">Stats</div>
                   <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
-                    {[["Connections",myConnections.length],["Endorsed",myEndorsements.length],["Members",profiles.length]].map(([l,v])=>(
-                      <div key={l} style={{background:"#faf8f5",borderRadius:8,padding:"12px 10px",textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:RED}}>{v}</div><div style={{fontSize:11,color:"#aaa",marginTop:2}}>{l}</div></div>
+                    {[["Connections",myConns.length,"var(--red)"],["Endorsed",myEndorsed.length,"var(--cedar)"],["Members",profiles.length,"#1D4ED8"]].map(([l,v,c])=>(
+                      <div key={l} style={{background:"var(--stone)",borderRadius:"var(--r-sm)",padding:"12px 10px",textAlign:"center"}}>
+                        <div style={{fontFamily:"var(--serif)",fontSize:22,fontWeight:700,color:c}}>{v}</div>
+                        <div style={{fontSize:10,color:"var(--text-3)",marginTop:2,textTransform:"uppercase",letterSpacing:".05em"}}>{l}</div>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -960,95 +922,180 @@ function App() {
             )}
           </div>
         )}
+
+        {/* ── FEEDBACK ── */}
+        {page==="feedback"&&(
+          <div className="page-sm">
+            <div className="page-title">Get in touch</div>
+            <div className="page-sub">We'd love to hear from you</div>
+            <div className="card" style={{marginBottom:12}}>
+              <div className="section-label">Contact us</div>
+              <div className="contact-grid">
+                <div style={{background:"var(--stone)",borderRadius:"var(--r-sm)",padding:"14px 16px"}}>
+                  <div style={{fontSize:20,marginBottom:6}}>✉️</div>
+                  <div style={{fontWeight:600,fontSize:13,marginBottom:2}}>Email</div>
+                  <div style={{fontSize:12,color:"var(--text-2)"}}>pierre.turk@mylebanesenetwork.com</div>
+                </div>
+                <div style={{background:"var(--stone)",borderRadius:"var(--r-sm)",padding:"14px 16px"}}>
+                  <div style={{fontSize:20,marginBottom:6}}>🌐</div>
+                  <div style={{fontWeight:600,fontSize:13,marginBottom:2}}>Website</div>
+                  <div style={{fontSize:12,color:"var(--text-2)"}}>mylebanesenetwork.com</div>
+                </div>
+              </div>
+            </div>
+            <div className="card">
+              <div className="section-label">Leave feedback</div>
+              {feedbackSent?(
+                <div style={{textAlign:"center",padding:"24px 0"}}>
+                  <div style={{fontSize:32,marginBottom:8}}>🙏</div>
+                  <div style={{fontFamily:"var(--serif)",fontSize:18,fontWeight:600,marginBottom:4}}>Thank you!</div>
+                  <div style={{fontSize:13,color:"var(--text-2)"}}>Your feedback helps us improve My Lebanese Network.</div>
+                  <button className="btn btn-sm" style={{marginTop:14}} onClick={()=>{setFeedbackSent(false);setFeedbackText("");}}>Send more feedback</button>
+                </div>
+              ):(
+                <>
+                  <textarea className="inp" style={{height:120,resize:"vertical",marginBottom:12}} placeholder="Tell us what you love, what's missing, or what could be better…" value={feedbackText} onChange={e=>setFeedbackText(e.target.value)}/>
+                  <button className="btn btn-primary" disabled={!feedbackText.trim()} onClick={()=>{if(feedbackText.trim()){setFeedbackSent(true);}}}>Send feedback →</button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
 
-      {/* AUTH MODAL */}
-      {showAuth && <AuthScreen onClose={()=>setShowAuth(false)} onAuthed={()=>{setShowAuth(false);setShowCreateProfile(true);}} />}
+      {/* ── AUTH MODAL ── */}
+      {showAuth&&<AuthScreen onClose={()=>setShowAuth(false)} onAuthed={()=>{setShowAuth(false);setShowCreate(true);}}/>}
 
-      {/* CREATE PROFILE MODAL */}
-      {showCreateProfile && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
-          <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:480,maxHeight:"92vh",overflowY:"auto"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <div style={{fontSize:18,fontWeight:800,color:RED}}>🌲 Create your profile</div>
-              <button style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#bbb"}} onClick={()=>setShowCreateProfile(false)}>✕</button>
+      {/* ── CREATE PROFILE MODAL ── */}
+      {showCreate&&(
+        <div className="modal-bg">
+          <div className="modal">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+              <div className="modal-title">Create your profile</div>
+              <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"var(--text-3)"}} onClick={()=>setShowCreate(false)}>✕</button>
             </div>
-            <div style={{display:"grid",gap:12}}>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,marginBottom:6}}>
-                {photoPreview ? (
-                  <img src={photoPreview} alt="preview" style={{width:80,height:80,borderRadius:"50%",objectFit:"cover",border:`3px solid ${RED}30`}}/>
-                ) : (
-                  <div style={{width:80,height:80,borderRadius:"50%",background:"#f5f0ea",display:"flex",alignItems:"center",justifyContent:"center",fontSize:28,color:"#ccc"}}>📷</div>
-                )}
-                <label style={{...S.btn(false),cursor:"pointer",fontSize:12}}>
-                  {uploadingPhoto ? "Uploading…" : "Choose photo"}
-                  <input type="file" accept="image/*" style={{display:"none"}} onChange={handlePhotoSelect}/>
-                </label>
-              </div>
-              {[["First name *","firstName","text"],["Last name *","lastName","text"],["Role / job title","role","text"],["Company","company","text"],["Country of residence","country","text"],["City","city","text"]].map(([label,key,type])=>(
-                <div key={key}><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>{label}</div><input style={S.input} type={type} value={form[key]} onChange={e=>setForm(prev=>({...prev,[key]:e.target.value}))}/></div>
-              ))}
-              <div><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Languages (comma-separated)</div><input style={S.input} value={form.languages} onChange={e=>setForm(prev=>({...prev,languages:e.target.value}))}/></div>
-              <div><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Industry</div><select style={S.input} value={form.industry} onChange={e=>setForm(prev=>({...prev,industry:e.target.value}))}>{INDUSTRIES.slice(1).map(i=><option key={i}>{i}</option>)}</select></div>
-              <div><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Bio</div><textarea style={{...S.input,height:80,resize:"vertical"}} value={form.bio} onChange={e=>setForm(prev=>({...prev,bio:e.target.value}))}/></div>
-              <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:13,color:"#555"}}><input type="checkbox" checked={form.livedLebanon} onChange={e=>setForm(prev=>({...prev,livedLebanon:e.target.checked}))} style={{width:16,height:16}}/>I have lived in Lebanon</label>
-              <button style={{...S.btn(true),width:"100%",padding:"12px 0",fontSize:14}} onClick={handleCreateProfile}>Create my profile →</button>
+            <div className="modal-sub">Tell the Lebanese community about yourself</div>
+            <PhotoUpload preview={photoPreview} onChange={onPhotoSelect} uploading={uploading}/>
+            <div className="form-grid">
+              <div className="form-row"><div className="form-label">First name *</div><input className="inp" value={form.firstName} onChange={e=>setForm(p=>({...p,firstName:e.target.value}))}/></div>
+              <div className="form-row"><div className="form-label">Last name *</div><input className="inp" value={form.lastName} onChange={e=>setForm(p=>({...p,lastName:e.target.value}))}/></div>
+            </div>
+            <div className="form-grid">
+              <div className="form-row"><div className="form-label">Role</div><input className="inp" placeholder="e.g. Software Engineer" value={form.role} onChange={e=>setForm(p=>({...p,role:e.target.value}))}/></div>
+              <div className="form-row"><div className="form-label">Company</div><input className="inp" placeholder="e.g. Google" value={form.company} onChange={e=>setForm(p=>({...p,company:e.target.value}))}/></div>
+            </div>
+            <div className="form-grid">
+              <div className="form-row"><div className="form-label">Country</div><input className="inp" placeholder="e.g. France" value={form.country} onChange={e=>setForm(p=>({...p,country:e.target.value}))}/></div>
+              <div className="form-row"><div className="form-label">City</div><input className="inp" placeholder="e.g. Paris" value={form.city} onChange={e=>setForm(p=>({...p,city:e.target.value}))}/></div>
+            </div>
+            <div className="form-row"><div className="form-label">Industry</div><select className="inp" value={form.industry} onChange={e=>setForm(p=>({...p,industry:e.target.value}))}>{INDUSTRIES.slice(1).map(i=><option key={i}>{i}</option>)}</select></div>
+            <div className="form-row"><div className="form-label">Languages <span style={{color:"var(--text-3)",fontWeight:400}}>comma-separated</span></div><input className="inp" placeholder="Arabic, French, English" value={form.languages} onChange={e=>setForm(p=>({...p,languages:e.target.value}))}/></div>
+            <div className="form-row"><div className="form-label">Bio</div><textarea className="inp" style={{height:72,resize:"vertical"}} placeholder="Tell the community about yourself…" value={form.bio} onChange={e=>setForm(p=>({...p,bio:e.target.value}))}/></div>
+            <div className="divider"/>
+            <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)",marginBottom:10,textTransform:"uppercase",letterSpacing:".05em"}}>Contact info (shown only to connections)</div>
+            <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer",fontSize:13}}>
+              <input type="checkbox" checked={form.shareEmail} onChange={e=>setForm(p=>({...p,shareEmail:e.target.checked}))}/> Share my email address
+            </label>
+            <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,cursor:"pointer",fontSize:13}}>
+              <input type="checkbox" checked={form.sharePhone} onChange={e=>setForm(p=>({...p,sharePhone:e.target.checked}))}/> Share my phone number
+            </label>
+            {form.sharePhone&&<div className="form-row"><div className="form-label">Phone number</div><input className="inp" placeholder="+33 6 00 00 00 00" value={form.phone} onChange={e=>setForm(p=>({...p,phone:e.target.value}))}/></div>}
+            <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:18,cursor:"pointer",fontSize:13}}>
+              <input type="checkbox" checked={form.livedLebanon} onChange={e=>setForm(p=>({...p,livedLebanon:e.target.checked}))}/> I have lived in Lebanon
+            </label>
+            <button className="btn btn-primary btn-full" onClick={createProfile}>{uploading?"Uploading photo…":"Create my profile →"}</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── EDIT PROFILE MODAL ── */}
+      {showEdit&&(
+        <div className="modal-bg">
+          <div className="modal">
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+              <div className="modal-title">Edit profile</div>
+              <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"var(--text-3)"}} onClick={()=>setShowEdit(false)}>✕</button>
+            </div>
+            <div className="modal-sub">Update your information</div>
+            <div className="form-grid">
+              <div className="form-row"><div className="form-label">First name *</div><input className="inp" value={editForm.firstName||""} onChange={e=>setEditForm(p=>({...p,firstName:e.target.value}))}/></div>
+              <div className="form-row"><div className="form-label">Last name *</div><input className="inp" value={editForm.lastName||""} onChange={e=>setEditForm(p=>({...p,lastName:e.target.value}))}/></div>
+            </div>
+            <div className="form-grid">
+              <div className="form-row"><div className="form-label">Role</div><input className="inp" value={editForm.role||""} onChange={e=>setEditForm(p=>({...p,role:e.target.value}))}/></div>
+              <div className="form-row"><div className="form-label">Company</div><input className="inp" value={editForm.company||""} onChange={e=>setEditForm(p=>({...p,company:e.target.value}))}/></div>
+            </div>
+            <div className="form-grid">
+              <div className="form-row"><div className="form-label">Country</div><input className="inp" value={editForm.country||""} onChange={e=>setEditForm(p=>({...p,country:e.target.value}))}/></div>
+              <div className="form-row"><div className="form-label">City</div><input className="inp" value={editForm.city||""} onChange={e=>setEditForm(p=>({...p,city:e.target.value}))}/></div>
+            </div>
+            <div className="form-row"><div className="form-label">Industry</div><select className="inp" value={editForm.industry||""} onChange={e=>setEditForm(p=>({...p,industry:e.target.value}))}>{INDUSTRIES.slice(1).map(i=><option key={i}>{i}</option>)}</select></div>
+            <div className="form-row"><div className="form-label">Languages</div><input className="inp" value={editForm.languages||""} onChange={e=>setEditForm(p=>({...p,languages:e.target.value}))}/></div>
+            <div className="form-row"><div className="form-label">Bio</div><textarea className="inp" style={{height:72,resize:"vertical"}} value={editForm.bio||""} onChange={e=>setEditForm(p=>({...p,bio:e.target.value}))}/></div>
+            <div className="divider"/>
+            <div style={{fontSize:12,fontWeight:600,color:"var(--text-2)",marginBottom:10,textTransform:"uppercase",letterSpacing:".05em"}}>Contact info sharing</div>
+            <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,cursor:"pointer",fontSize:13}}>
+              <input type="checkbox" checked={editForm.share_email||false} onChange={e=>setEditForm(p=>({...p,share_email:e.target.checked}))}/> Share my email with connections
+            </label>
+            <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:10,cursor:"pointer",fontSize:13}}>
+              <input type="checkbox" checked={editForm.share_phone||false} onChange={e=>setEditForm(p=>({...p,share_phone:e.target.checked}))}/> Share my phone with connections
+            </label>
+            {editForm.share_phone&&<div className="form-row"><div className="form-label">Phone</div><input className="inp" value={editForm.phone||""} onChange={e=>setEditForm(p=>({...p,phone:e.target.value}))}/></div>}
+            <label style={{display:"flex",alignItems:"center",gap:8,marginBottom:18,cursor:"pointer",fontSize:13}}>
+              <input type="checkbox" checked={editForm.livedLebanon??editForm.lived_lebanon??false} onChange={e=>setEditForm(p=>({...p,livedLebanon:e.target.checked}))}/> I have lived in Lebanon
+            </label>
+            <div style={{display:"flex",gap:8}}>
+              <button className="btn btn-primary" style={{flex:1,padding:"11px 0"}} onClick={saveEdit}>Save changes</button>
+              <button className="btn btn-danger" style={{padding:"11px 16px"}} onClick={deleteProfile}>Delete</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* EDIT PROFILE MODAL */}
-      {showEditProfile && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
-          <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:480,maxHeight:"92vh",overflowY:"auto"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
-              <div style={{fontSize:18,fontWeight:800,color:RED}}>✏️ Edit profile</div>
-              <button style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#bbb"}} onClick={()=>setShowEditProfile(false)}>✕</button>
+      {/* ── CONTACT INFO MODAL ── */}
+      {showContact&&(
+        <div className="modal-bg" onClick={()=>setShowContact(null)}>
+          <div className="modal" onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+              <div className="modal-title">Contact info</div>
+              <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"var(--text-3)"}} onClick={()=>setShowContact(null)}>✕</button>
             </div>
-            <div style={{display:"grid",gap:12}}>
-              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10,marginBottom:6}}>
-                <Avatar initials={myProfile?.initials} color={myProfile?.color} bg={myProfile?.bg} size={80} photoUrl={myProfile?.photo_url}/>
-                <label style={{...S.btn(false),cursor:"pointer",fontSize:12}}>
-                  {uploadingPhoto ? "Uploading…" : "Change photo"}
-                  <input type="file" accept="image/*" style={{display:"none"}} onChange={handleEditPhotoUpload}/>
-                </label>
-              </div>
-              {[["First name *","firstName","text"],["Last name *","lastName","text"],["Role","role","text"],["Company","company","text"],["Country","country","text"],["City","city","text"],["Languages (comma-separated)","languages","text"]].map(([label,key,type])=>(
-                <div key={key}><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>{label}</div><input style={S.input} type={type} value={editForm[key]||""} onChange={e=>setEditForm(prev=>({...prev,[key]:e.target.value}))}/></div>
-              ))}
-              <div><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Industry</div><select style={S.input} value={editForm.industry||""} onChange={e=>setEditForm(prev=>({...prev,industry:e.target.value}))}>{INDUSTRIES.slice(1).map(i=><option key={i}>{i}</option>)}</select></div>
-              <div><div style={{fontSize:12,color:"#666",marginBottom:4,fontWeight:600}}>Bio</div><textarea style={{...S.input,height:80,resize:"vertical"}} value={editForm.bio||""} onChange={e=>setEditForm(prev=>({...prev,bio:e.target.value}))}/></div>
-              <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:13,color:"#555"}}><input type="checkbox" checked={editForm.livedLebanon ?? editForm.lived_lebanon ?? false} onChange={e=>setEditForm(prev=>({...prev,livedLebanon:e.target.checked}))} style={{width:16,height:16}}/>I have lived in Lebanon</label>
-              <div style={{display:"flex",gap:8}}>
-                <button style={{...S.btn(true),flex:1,padding:"11px 0",fontSize:14}} onClick={handleSaveEdit}>Save changes</button>
-                <button style={{...S.btn(false,true),padding:"11px 16px",fontSize:14}} onClick={handleDeleteProfile}>Delete</button>
-              </div>
-            </div>
+            <div className="modal-sub">{showContact.name} has shared the following</div>
+            {showContact.share_email&&<div style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0",borderBottom:"1px solid var(--border)"}}>
+              <div style={{fontSize:20}}>✉️</div>
+              <div><div style={{fontSize:11,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".05em"}}>Email</div><div style={{fontWeight:500,fontSize:14}}>{showContact.email}</div></div>
+            </div>}
+            {showContact.share_phone&&showContact.phone&&<div style={{display:"flex",alignItems:"center",gap:12,padding:"12px 0"}}>
+              <div style={{fontSize:20}}>📱</div>
+              <div><div style={{fontSize:11,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".05em"}}>Phone</div><div style={{fontWeight:500,fontSize:14}}>{showContact.phone}</div></div>
+            </div>}
+            {!showContact.share_email&&!showContact.share_phone&&<div style={{color:"var(--text-3)",fontSize:13,padding:"12px 0"}}>This person hasn't shared any contact info yet.</div>}
           </div>
         </div>
       )}
 
-      {/* REPORT MODAL */}
-      {showReportModal && (
-        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
-          <div style={{background:"#fff",borderRadius:16,padding:28,width:"100%",maxWidth:420}}>
-            <div style={{fontSize:17,fontWeight:800,marginBottom:6}}>⚠️ Report this user</div>
-            <div style={{fontSize:13,color:"#888",marginBottom:18}}>Help us keep LebConnect safe.</div>
+      {/* ── REPORT MODAL ── */}
+      {showReport&&(
+        <div className="modal-bg">
+          <div className="modal" style={{maxWidth:400}}>
+            <div className="modal-title" style={{marginBottom:4}}>Report this user</div>
+            <div className="modal-sub">Help us keep My Lebanese Network safe</div>
             <div style={{display:"grid",gap:8}}>
-              {["Harassment or abusive language","Spam or scam","Fake profile / impersonation","Inappropriate content","Other"].map(reason=>(
-                <button key={reason} style={{...S.btn(false),textAlign:"left",padding:"10px 14px"}} onClick={()=>reportUser(showReportModal,reason)}>{reason}</button>
+              {["Harassment or abusive language","Spam or scam","Fake profile / impersonation","Inappropriate content","Other"].map(r=>(
+                <button key={r} className="btn" style={{textAlign:"left",padding:"10px 14px"}} onClick={()=>reportUser(showReport,r)}>{r}</button>
               ))}
             </div>
-            <button style={{...S.btn(false),width:"100%",marginTop:14}} onClick={()=>setShowReportModal(null)}>Cancel</button>
+            <button className="btn" style={{width:"100%",marginTop:12}} onClick={()=>setShowReport(null)}>Cancel</button>
           </div>
         </div>
       )}
+
     </div>
   );
 }
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+const root=ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App/>);
 </script>
 </body>
