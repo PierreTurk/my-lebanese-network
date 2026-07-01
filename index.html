@@ -271,7 +271,7 @@ function HomePage({onEnter,onSignup}){
       <div style={{position:"relative",textAlign:"center",padding:"0 24px",maxWidth:680,zIndex:1}}>
         <div className="home-tag">My Lebanese Network</div>
         <h1 className="home-h1">Who are the Lebanese<br/>in <span className={`home-country${vis?"":" hidden"}`}>{DIASPORA[wi]}</span> ?</h1>
-        <p className="home-p">The Lebanese are everywhere. MLN is the place to find them — wherever you are, whatever you do.</p>
+        <p className="home-p">The Lebanese are everywhere. MLN is the place to find them, wherever you are, whatever you do.</p>
         <div className="home-btns">
           <button className="home-btn-primary" onClick={onEnter}>Explore the network →</button>
           <button className="home-btn-secondary" onClick={onSignup}>Log in / Join</button>
@@ -668,8 +668,22 @@ function App(){
       {/* SIDEBAR */}
       <div className="sidebar">
         <div className="logo-box">
-          <div className="logo-name">🌲 MLN</div>
-          <div className="logo-sub">My Lebanese Network</div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
+            <div className="logo-name">🌲 MLN</div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:3}}>
+            {[["all","🌐","World"],["pro","💼","Pro"],["social","❤️","Social"]].map(([v,ic,lb])=>(
+              <div key={v} onClick={()=>setDiscoverMode(v)} style={{
+                padding:"5px 4px",borderRadius:6,textAlign:"center",cursor:"pointer",
+                background:discoverMode===v?(v==="all"?"#FEF2F2":v==="pro"?"#EFF6FF":"#F0FDF4"):"transparent",
+                border:`1px solid ${discoverMode===v?(v==="all"?"#FECACA":v==="pro"?"#BFDBFE":"#BBF7D0"):"transparent"}`,
+                transition:"all .15s"
+              }}>
+                <div style={{fontSize:12}}>{ic}</div>
+                <div style={{fontSize:9,fontWeight:700,color:discoverMode===v?(v==="all"?"#B91C1C":v==="pro"?"#1D4ED8":"#166534"):"var(--text-3)",letterSpacing:".02em",marginTop:1}}>{lb}</div>
+              </div>
+            ))}
+          </div>
         </div>
         <div style={{flex:1,paddingTop:6}}>
           {navItems.map(n=>(
@@ -703,23 +717,36 @@ function App(){
         {/* ── DISCOVER ── */}
         {page==="discover"&&!viewProfile&&(
           <div className="page">
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:4}}>
-              <div className="page-title">Discover</div>
-              <div style={{display:"flex",gap:0,background:"var(--stone)",borderRadius:20,padding:3}}>
-                {[["all","🌐 All"],["pro","💼 Pro"],["social","❤️ Social"]].map(([v,l])=>(
-                  <div key={v} onClick={()=>setDiscoverMode(v)} style={{padding:"6px 14px",borderRadius:18,fontSize:12,fontWeight:600,cursor:"pointer",background:discoverMode===v?"#fff":"transparent",color:discoverMode===v?"var(--red)":"var(--text-3)",transition:"all .15s",boxShadow:discoverMode===v?"0 1px 4px rgba(0,0,0,.08)":"none"}}>{l}</div>
-                ))}
+            <div style={{
+              background:discoverMode==="all"?"#FEF2F2":discoverMode==="pro"?"#EFF6FF":"#F0FDF4",
+              border:`1px solid ${discoverMode==="all"?"#FECACA":discoverMode==="pro"?"#BFDBFE":"#BBF7D0"}`,
+              borderRadius:"var(--r)",padding:"14px 18px",marginBottom:18
+            }}>
+              <div style={{fontSize:20,fontWeight:800,letterSpacing:"-1px",color:discoverMode==="all"?"#B91C1C":discoverMode==="pro"?"#1D4ED8":"#166534",marginBottom:2}}>
+                {discoverMode==="all"?"Discover":discoverMode==="pro"?"Pro network":"Social"}
+              </div>
+              <div style={{fontSize:12,color:"var(--text-2)"}}>
+                {discoverMode==="all"?"Find Lebanese people worldwide, for any reason":discoverMode==="pro"?"Work, collaborate, and grow with Lebanese professionals":"Connect beyond work: life, culture, and friendship"}
               </div>
             </div>
-            <div className="page-sub">
-              {discoverMode==="all"?"Find Lebanese people worldwide — for any reason":""}
-              {discoverMode==="pro"?"Network, collaborate, and grow professionally":""}
-              {discoverMode==="social"?"Connect with Lebanese beyond work — life, culture, friendship":""}
-            </div>
-            <div className="live-counter">
-              <div className="counter-item"><div className="counter-num" style={{color:"var(--red)"}}>{liveStats.requests}</div><div className="counter-label">Requests sent</div></div>
-              <div className="counter-item"><div className="counter-num" style={{color:"var(--cedar)"}}>{liveStats.accepted}</div><div className="counter-label">Connections made</div></div>
-              <div className="counter-item"><div className="counter-num" style={{color:"#1D4ED8"}}>{liveStats.messages}</div><div className="counter-label">Conversations started</div></div>
+            <div style={{background:"#fff",border:"1px solid var(--border)",borderRadius:"var(--r)",overflow:"hidden",marginBottom:18}}>
+              <div style={{padding:"8px 14px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                <div style={{fontSize:10,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".08em"}}>Across the whole network</div>
+                <div style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:"#166534",fontWeight:600}}>
+                  <div style={{width:6,height:6,borderRadius:"50%",background:"#22C55E"}}/>Live
+                </div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)"}}>
+                {[["Requests sent",liveStats.requests,"#B91C1C"],["Connections made",liveStats.accepted,"#166534"],["Conversations started",liveStats.messages,"#1D4ED8"]].map(([l,v,c])=>(
+                  <div key={l} style={{padding:"12px 10px",textAlign:"center",borderRight:"1px solid var(--border)"}}>
+                    <div style={{fontSize:24,fontWeight:800,color:c,letterSpacing:"-1px",lineHeight:1}}>{v}</div>
+                    <div style={{fontSize:10,color:"var(--text-3)",marginTop:4,lineHeight:1.3}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{padding:"6px 14px",background:"var(--stone)",fontSize:10,color:"var(--text-3)",textAlign:"center",borderTop:"1px solid var(--border)"}}>
+                These are community stats, not your personal activity
+              </div>
             </div>
             <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
               <input className="inp" style={{flex:1,minWidth:200}} placeholder="Search name, company, role, city…" value={searchQ} onChange={e=>setSearchQ(e.target.value)}/>
@@ -736,7 +763,7 @@ function App(){
                 <div key={p.id} className="profile-card" onClick={()=>setViewProfile(p)}>
                   <div style={{display:"flex",justifyContent:"center"}}><Av initials={p.initials} color={p.color} bg={p.bg} size={52} photoUrl={p.photo_url}/></div>
                   <div className="profile-name">{p.name}</div>
-                  <div className="profile-role">{[p.role,p.company].filter(Boolean).join(" · ")}</div>
+                  <div className="profile-role">{[p.role,p.company].filter(Boolean).join(" at ")}</div>
                   {(p.city||p.country)&&<div style={{display:"inline-flex",alignItems:"center",gap:4,background:"#EFF6FF",borderRadius:14,padding:"3px 9px",marginBottom:8,fontSize:11,fontWeight:500,color:"#1D4ED8"}}>📍 {[p.city,p.country].filter(Boolean).join(", ")}</div>}
                   {p.lived_lebanon&&<div style={{marginBottom:10}}><Badge variant="cedar">🌲 Lived in Lebanon</Badge></div>}
                   <button className={`btn btn-sm${connActive(p.id)?" btn-active":""}`} onClick={e=>{e.stopPropagation();sendRequest(p.id);}}>{connLabel(p.id)}</button>
@@ -756,7 +783,7 @@ function App(){
                 <Av initials={viewProfile.initials} color={viewProfile.color} bg={viewProfile.bg} size={72} photoUrl={viewProfile.photo_url}/>
                 <div style={{flex:1}}>
                   <div className="profile-detail-name">{viewProfile.name}</div>
-                  <div style={{fontSize:13,color:"var(--text-2)",marginBottom:8}}>{[viewProfile.role,viewProfile.company].filter(Boolean).join(" · ")}</div>
+                  <div style={{fontSize:13,color:"var(--text-2)",marginBottom:8}}>{[viewProfile.role,viewProfile.company].filter(Boolean).join(" at ")}</div>
                   {(viewProfile.city||viewProfile.country)&&<div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:20,padding:"5px 12px",marginBottom:10,fontSize:12,fontWeight:600,color:"#1D4ED8"}}>📍 Currently in {[viewProfile.city,viewProfile.country].filter(Boolean).join(", ")}</div>}
                   <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:14}}>
                     {viewProfile.lived_lebanon&&<Badge variant="cedar">🌲 Lived in Lebanon</Badge>}
@@ -818,7 +845,7 @@ function App(){
         {page==="map"&&(
           <div className="page">
             <div className="page-title">Lebanese worldwide 🌍</div>
-            <div className="page-sub">Hover over dots to explore — click to filter by country</div>
+                          <div className="page-sub">Hover over dots to explore, click to filter by country</div>
             <div className="map-box">
               <svg viewBox="0 0 100 80" style={{width:"100%",height:"auto",display:"block"}}>
                 <rect width="100" height="80" fill="#DBEAFE" rx="4"/>
@@ -950,7 +977,7 @@ function App(){
                     </div>
                     <div style={{flex:1}}>
                       <div style={{fontFamily:"var(--serif)",fontSize:20,fontWeight:700,marginBottom:2}}>{myProfile.name}</div>
-                      <div style={{fontSize:13,color:"var(--text-2)",marginBottom:6}}>{[myProfile.role,myProfile.company].filter(Boolean).join(" · ")}</div>
+                      <div style={{fontSize:13,color:"var(--text-2)",marginBottom:6}}>{[myProfile.role,myProfile.company].filter(Boolean).join(" at ")}</div>
                       {(myProfile.city||myProfile.country)&&<div style={{display:"inline-flex",alignItems:"center",gap:6,background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:20,padding:"4px 12px",marginBottom:10,fontSize:12,fontWeight:500,color:"#1D4ED8"}}>📍 {[myProfile.city,myProfile.country].filter(Boolean).join(", ")}</div>}
                       <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
                         {myProfile.lived_lebanon&&<Badge variant="cedar">🌲 Lived in Lebanon</Badge>}
