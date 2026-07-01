@@ -307,8 +307,12 @@ function App(){
   function notify(msg){setToast(msg);setTimeout(()=>setToast(null),2800);}
 
   useEffect(()=>{
-    supabase.auth.getSession().then(({data:{session}})=>setSession(session));
-    const{data:l}=supabase.auth.onAuthStateChange((_,s)=>setSession(s));
+    supabase.auth.getSession().then(({data:{session}})=>{
+      setSession(session);
+    });
+    const{data:l}=supabase.auth.onAuthStateChange((_,s)=>{
+      setSession(s);
+    });
     return()=>l.subscription.unsubscribe();
   },[]);
 
@@ -320,12 +324,13 @@ function App(){
   }
   useEffect(()=>{loadProfiles();},[]);
 
+  // Only resolve myProfile once BOTH session AND profiles are loaded
   useEffect(()=>{
-    if(session?.user&&profiles.length>=0){
-      const mine=profiles.find(p=>p.user_id===session.user.id);
-      setMyProfile(mine||null);
-    }
-  },[session,profiles]);
+    if(loading)return; // wait for profiles to finish loading
+    if(!session?.user){setMyProfile(null);return;}
+    const mine=profiles.find(p=>p.user_id===session.user.id);
+    setMyProfile(mine||null);
+  },[session,profiles,loading]);
 
   async function loadRelations(){
     const[c,e,b]=await Promise.all([supabase.from("connections").select("*"),supabase.from("endorsements").select("*"),supabase.from("blocks").select("*")]);
@@ -506,7 +511,23 @@ function App(){
     setFeedbackSent(true);
   }
 
-  // ── DERIVED STATE ──
+  // ── PROFILE COMPLETION SCORE ──
+  function profileScore(p){
+    if(!p)return 0;
+    const checks=[p.photo_url,p.bio,p.role,p.company,p.country,p.city,p.languages?.length>0,p.industry];
+    return Math.round((checks.filter(Boolean).length/checks.length)*100);
+  }
+
+  // ── PEOPLE YOU MAY KNOW ──
+  function getSuggestions(){
+    if(!myProfile||profiles.length===0)return[];
+    return profiles
+      .filter(p=>p.id!==myProfile.id&&!myConns.includes(p.id)&&!myPendingSent.includes(p.id))
+      .map(p=>({...p,score:(p.country===myProfile.country?2:0)+(p.industry===myProfile.industry?2:0)+(p.lived_lebanon&&myProfile.lived_lebanon?1:0)}))
+      .sort((a,b)=>b.score-a.score)
+      .filter(p=>p.score>0)
+      .slice(0,4);
+  }
   const myConns=connections.filter(c=>(c.user_id===myProfile?.id||c.connected_to===myProfile?.id)&&c.status==="accepted").map(c=>c.user_id===myProfile?.id?c.connected_to:c.user_id);
   const myPendingSent=connections.filter(c=>c.user_id===myProfile?.id&&c.status==="pending").map(c=>c.connected_to);
   const pendingFromOther=connections.filter(c=>c.connected_to===myProfile?.id&&c.status==="pending").map(c=>c.user_id);
@@ -552,7 +573,16 @@ function App(){
   if(page==="home")return(
     <>
       <HomePage onEnter={()=>{setHasSeenHome(true);setPage("discover");}} onSignup={()=>{setHasSeenHome(true);session?setShowCreate(true):setShowAuth(true);}}/>
-      {showAuth&&<AuthScreen onClose={()=>setShowAuth(false)} onAuthed={(user)=>{setShowAuth(false);const ex=profiles.find(p=>p.user_id===user?.id);if(!ex)setShowCreate(true);else{setHasSeenHome(true);setPage("discover");}}}/>}
+      {showAuth&&<AuthScreen onClose={()=>setShowAuth(false)} onAuthed={async (user)=>{
+        setShowAuth(false);
+        const{data}=await supabase.from("profiles").select("*").order("created_at",{ascending:false});
+        if(data){
+          setProfiles(data);
+          const existing=data.find(p=>p.user_id===user?.id);
+          if(!existing) setShowCreate(true);
+          else{setHasSeenHome(true);setPage("discover");}
+        }
+      }}/>}
     </>
   );
 
@@ -609,6 +639,30 @@ function App(){
                 {discoverMode==="all"?"Find Lebanese people worldwide, for any reason":discoverMode==="pro"?"Work, collaborate, and grow with Lebanese professionals":"Connect beyond work: life, culture, and friendship"}
               </div>
             </div>
+
+            {/* PEOPLE YOU MAY KNOW */}
+            {myProfile&&getSuggestions().length>0&&(
+              <div style={{marginBottom:20}}>
+                <div style={{fontSize:11,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".08em",marginBottom:10}}>People you may know</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(175px,1fr))",gap:10}}>
+                  {getSuggestions().map(p=>(
+                    <div key={p.id} style={{background:"#fff",border:"1px solid var(--border)",borderRadius:"var(--r)",padding:"14px",textAlign:"center",cursor:"pointer",transition:"all .15s",position:"relative"}} onClick={()=>setViewProfile(p)}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--red-mid)";e.currentTarget.style.transform="translateY(-1px)"}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.transform="none"}}>
+                      <div style={{position:"absolute",top:8,right:8,fontSize:9,color:"var(--text-3)",background:"var(--stone)",padding:"2px 6px",borderRadius:8}}>
+                        {p.country===myProfile.country?"Same country":p.industry===myProfile.industry?"Same industry":"Lebanese"}
+                      </div>
+                      <div style={{display:"flex",justifyContent:"center",marginBottom:8}}><Av initials={p.initials} color={p.color} bg={p.bg} size={44} photoUrl={p.photo_url}/></div>
+                      <div style={{fontWeight:700,fontSize:13,marginBottom:2}}>{p.name}</div>
+                      <div style={{fontSize:11,color:"var(--text-2)",marginBottom:8}}>{[p.city,p.country].filter(Boolean).join(", ")}</div>
+                      <button className={`btn btn-sm${connActive(p.id)?" btn-active":""}`} style={{width:"100%"}} onClick={e=>{e.stopPropagation();sendRequest(p.id);}}>{connLabel(p.id)}</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* LIVE COUNTER */}
             <div style={{background:"#fff",border:"1px solid var(--border)",borderRadius:"var(--r)",overflow:"hidden",marginBottom:18}}>
               <div style={{padding:"8px 14px",borderBottom:"1px solid var(--border)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                 <div style={{fontSize:10,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".08em"}}>Across the whole network</div>
@@ -628,6 +682,8 @@ function App(){
                 These are community stats, not your personal activity
               </div>
             </div>
+
+            {/* SEARCH + FILTERS */}
             <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
               <input className="inp" style={{flex:1,minWidth:200}} placeholder="Search name, company, role, city…" value={searchQ} onChange={e=>setSearchQ(e.target.value)}/>
             </div>
@@ -637,6 +693,14 @@ function App(){
               <div className={`chip${filterLived?" on":""}`} onClick={()=>setFilterLived(!filterLived)}>🌲 Lived in Lebanon</div>
               {(searchQ||filterCountry!=="All countries"||filterIndustry!=="All industries"||filterLived)&&<div className="chip" onClick={()=>{setSearchQ("");setFilterCountry("All countries");setFilterIndustry("All industries");setFilterLived(false);}}>✕ Clear</div>}
             </div>
+
+            {/* COMPANY VIEW — Lebanese at [company] */}
+            {searchQ&&filtered.length>0&&[...new Set(filtered.map(p=>p.company).filter(Boolean))].length===1&&(
+              <div style={{background:"#EFF6FF",border:"1px solid #BFDBFE",borderRadius:"var(--r)",padding:"10px 14px",marginBottom:14,fontSize:12,color:"#1D4ED8",fontWeight:600}}>
+                🏢 Showing all Lebanese at {filtered[0].company}
+              </div>
+            )}
+
             <div style={{fontSize:12,color:"var(--text-3)",marginBottom:16}}>{loading?"Loading…":`${filtered.length} member${filtered.length!==1?"s":""} found`}</div>
             <div className="profile-grid">
               {filtered.map(p=>(
@@ -650,7 +714,13 @@ function App(){
                 </div>
               ))}
             </div>
-            {!loading&&filtered.length===0&&<div style={{textAlign:"center",color:"var(--text-3)",marginTop:80,fontSize:16}}>No members found.<br/><span style={{fontSize:13}}>Try adjusting your filters.</span></div>}
+            {!loading&&filtered.length===0&&(
+              <div style={{textAlign:"center",color:"var(--text-3)",marginTop:80}}>
+                <div style={{fontSize:32,marginBottom:12}}>🔍</div>
+                <div style={{fontSize:16,fontWeight:700,marginBottom:6}}>No members found</div>
+                <div style={{fontSize:13}}>Try adjusting your filters or <span style={{color:"var(--red)",cursor:"pointer",fontWeight:600}} onClick={()=>{setSearchQ("");setFilterCountry("All countries");setFilterIndustry("All industries");setFilterLived(false);}}>clear them</span></div>
+              </div>
+            )}
           </div>
         )}
 
@@ -758,7 +828,12 @@ function App(){
             <div className="msg-layout">
               <div className="msg-list">
                 <div style={{padding:"10px 12px 8px",fontSize:10,fontWeight:700,color:"var(--text-3)",textTransform:"uppercase",letterSpacing:".07em",borderBottom:"1px solid var(--border)"}}>Conversations</div>
-                {chatList.length===0&&<div style={{padding:14,fontSize:12,color:"var(--text-3)"}}>Connect with people first.</div>}
+                {chatList.length===0&&(
+                  <div style={{padding:16,fontSize:12,color:"var(--text-3)",lineHeight:1.6}}>
+                    No conversations yet.<br/>
+                    <span style={{color:"var(--red)",cursor:"pointer",fontWeight:600}} onClick={()=>setPage("discover")}>Find Lebanese people →</span>
+                  </div>
+                )}
                 {chatList.map(p=>(
                   <div key={p.id} className={`msg-item${activeChat===p.id?" active":""}`} style={{opacity:myBlocks.includes(p.id)?.5:1}} onClick={()=>openChat(p.id)}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
@@ -837,6 +912,27 @@ function App(){
                     </div>
                   </div>
                   {myProfile.bio&&<div style={{marginTop:14,fontSize:13,color:"var(--text-2)",lineHeight:1.75,borderTop:"1px solid var(--border)",paddingTop:14}}>{myProfile.bio}</div>}
+                  {(()=>{
+                    const score=profileScore(myProfile);
+                    if(score>=100)return null;
+                    const missing=[];
+                    if(!myProfile.photo_url)missing.push("photo");
+                    if(!myProfile.bio)missing.push("bio");
+                    if(!myProfile.role)missing.push("role");
+                    if(!myProfile.company)missing.push("company");
+                    if(!myProfile.languages?.length)missing.push("languages");
+                    return(
+                      <div style={{marginTop:14,padding:"12px 14px",background:"#FFFBEB",border:"1px solid #FDE68A",borderRadius:"var(--r-sm)"}}>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+                          <div style={{fontSize:12,fontWeight:700,color:"#92400E"}}>Profile {score}% complete</div>
+                          <div style={{fontSize:11,color:"#B45309"}}>Add {missing[0]} to be found more easily</div>
+                        </div>
+                        <div style={{height:5,background:"#FEF3C7",borderRadius:4}}>
+                          <div style={{height:5,background:"#F59E0B",borderRadius:4,width:`${score}%`,transition:"width .4s"}}/>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="card">
                   <div className="section-label">Stats</div>
@@ -943,7 +1039,16 @@ function App(){
         )}
       </div>
 
-      {showAuth&&<AuthScreen onClose={()=>setShowAuth(false)} onAuthed={(user)=>{setShowAuth(false);const ex=profiles.find(p=>p.user_id===user?.id);if(!ex)setShowCreate(true);}}/>}
+      {showAuth&&<AuthScreen onClose={()=>setShowAuth(false)} onAuthed={async (user)=>{
+    setShowAuth(false);
+    // reload profiles fresh so we can find the user's profile immediately
+    const{data}=await supabase.from("profiles").select("*").order("created_at",{ascending:false});
+    if(data){
+      setProfiles(data);
+      const existing=data.find(p=>p.user_id===user?.id);
+      if(!existing) setShowCreate(true);
+    }
+  }}/>}
 
       {showCreate&&(
         <div className="modal-bg">
