@@ -271,13 +271,13 @@ function HomePage({onEnter,onSignup}){
       <div style={{position:"relative",textAlign:"center",padding:"0 24px",maxWidth:680,zIndex:1}}>
         <div className="home-tag">My Lebanese Network</div>
         <h1 className="home-h1">Who are the Lebanese<br/>in <span className={`home-country${vis?"":" hidden"}`}>{DIASPORA[wi]}</span> ?</h1>
-        <p className="home-p">Find, connect, and network with Lebanese professionals worldwide — by country, company, or industry.</p>
+        <p className="home-p">The Lebanese are everywhere. MLN is the place to find them — wherever you are, whatever you do.</p>
         <div className="home-btns">
           <button className="home-btn-primary" onClick={onEnter}>Explore the network →</button>
           <button className="home-btn-secondary" onClick={onSignup}>Log in / Join</button>
         </div>
         <div className="home-stats">
-          {[["🌍","35+ countries"],["👥","Growing community"],["💼","All industries"],["🌲","Lebanese roots"]].map(([ic,lb])=>(
+          {[["🌍","35+ countries"],["👥","Growing community"],["🌲","Lebanese roots"],["❤️","All walks of life"]].map(([ic,lb])=>(
             <div key={lb} className="home-stat"><div style={{fontSize:22}}>{ic}</div><div className="home-stat-label">{lb}</div></div>
           ))}
         </div>
@@ -291,12 +291,20 @@ function HomePage({onEnter,onSignup}){
 // AUTH SCREEN
 // ════════════════════════════════
 function AuthScreen({onAuthed,onClose}){
-  const [mode,setMode]=useState("signup"),[email,setEmail]=useState(""),[pw,setPw]=useState(""),[err,setErr]=useState(""),[loading,setLoading]=useState(false);
+  const [mode,setMode]=useState("signup"),[email,setEmail]=useState(""),[pw,setPw]=useState(""),[remember,setRemember]=useState(true),[err,setErr]=useState(""),[loading,setLoading]=useState(false);
   async function submit(){
     setErr("");setLoading(true);
     try{
-      if(mode==="signup"){const{data,error}=await supabase.auth.signUp({email,password:pw});if(error)throw error;onAuthed(data.user);}
-      else{const{data,error}=await supabase.auth.signInWithPassword({email,password:pw});if(error)throw error;onAuthed(data.user);}
+      const opts = remember ? {} : { options: { persistSession: false } };
+      if(mode==="signup"){
+        const{data,error}=await supabase.auth.signUp({email,password:pw});
+        if(error)throw error;
+        onAuthed(data.user);
+      } else {
+        const{data,error}=await supabase.auth.signInWithPassword({email,password:pw,...opts});
+        if(error)throw error;
+        onAuthed(data.user);
+      }
     }catch(e){setErr(e.message||"Something went wrong");}
     finally{setLoading(false);}
   }
@@ -308,8 +316,16 @@ function AuthScreen({onAuthed,onClose}){
           <div className="modal-sub">My Lebanese Network</div></div>
           <button style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"var(--text-3)",lineHeight:1}} onClick={onClose}>✕</button>
         </div>
-        <div className="form-row"><div className="form-label">Email</div><input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com"/></div>
-        <div className="form-row"><div className="form-label">Password</div><input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="At least 6 characters"/></div>
+        <div className="form-row"><div className="form-label">Email</div><input className="inp" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="your@email.com" onKeyDown={e=>e.key==="Enter"&&submit()}/></div>
+        <div className="form-row"><div className="form-label">Password</div><input className="inp" type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="At least 6 characters" onKeyDown={e=>e.key==="Enter"&&submit()}/></div>
+        {mode==="login"&&(
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14,cursor:"pointer"}} onClick={()=>setRemember(!remember)}>
+            <div style={{width:18,height:18,borderRadius:4,border:`2px solid ${remember?"var(--red)":"var(--border-2)"}`,background:remember?"var(--red)":"#fff",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,transition:"all .12s"}}>
+              {remember&&<span style={{color:"#fff",fontSize:11,lineHeight:1}}>✓</span>}
+            </div>
+            <span style={{fontSize:13,color:"var(--text-2)"}}>Remember me</span>
+          </div>
+        )}
         {err&&<div style={{background:"var(--red-light)",color:"var(--red)",padding:"8px 12px",borderRadius:8,fontSize:12,marginBottom:12}}>{err}</div>}
         <button className="btn btn-primary btn-full" disabled={loading} onClick={submit} style={{marginBottom:14}}>{loading?"Please wait…":mode==="signup"?"Create account →":"Log in →"}</button>
         <div style={{textAlign:"center",fontSize:12,color:"var(--text-3)"}}>
@@ -377,7 +393,17 @@ function App(){
   const [uploading,setUploading]=useState(false);
   const [form,setForm]=useState({firstName:"",lastName:"",role:"",company:"",country:"",city:"",livedLebanon:false,bio:"",languages:"",industry:"Technology",shareEmail:false,sharePhone:false,phone:""});
   const [editForm,setEditForm]=useState({});
+  const [discoverMode, setDiscoverMode] = useState("all"); // all | pro | social
   const [showConnections, setShowConnections] = useState(false);
+  async function sendFeedback(){
+    if(!feedbackText.trim())return;
+    await supabase.from("feedback").insert({
+      type: feedbackType,
+      message: feedbackText.trim(),
+      sender_id: myProfile?.id || null
+    });
+    setFeedbackSent(true);
+  }
   const [feedbackText,setFeedbackText]=useState("");
   const [feedbackType,setFeedbackType]=useState("Feedback");
   const [feedbackSent,setFeedbackSent]=useState(false);
@@ -677,8 +703,19 @@ function App(){
         {/* ── DISCOVER ── */}
         {page==="discover"&&!viewProfile&&(
           <div className="page">
-            <div className="page-title">Discover</div>
-            <div className="page-sub">Find Lebanese professionals worldwide</div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12,marginBottom:4}}>
+              <div className="page-title">Discover</div>
+              <div style={{display:"flex",gap:0,background:"var(--stone)",borderRadius:20,padding:3}}>
+                {[["all","🌐 All"],["pro","💼 Pro"],["social","❤️ Social"]].map(([v,l])=>(
+                  <div key={v} onClick={()=>setDiscoverMode(v)} style={{padding:"6px 14px",borderRadius:18,fontSize:12,fontWeight:600,cursor:"pointer",background:discoverMode===v?"#fff":"transparent",color:discoverMode===v?"var(--red)":"var(--text-3)",transition:"all .15s",boxShadow:discoverMode===v?"0 1px 4px rgba(0,0,0,.08)":"none"}}>{l}</div>
+                ))}
+              </div>
+            </div>
+            <div className="page-sub">
+              {discoverMode==="all"?"Find Lebanese people worldwide — for any reason":""}
+              {discoverMode==="pro"?"Network, collaborate, and grow professionally":""}
+              {discoverMode==="social"?"Connect with Lebanese beyond work — life, culture, friendship":""}
+            </div>
             <div className="live-counter">
               <div className="counter-item"><div className="counter-num" style={{color:"var(--red)"}}>{liveStats.requests}</div><div className="counter-label">Requests sent</div></div>
               <div className="counter-item"><div className="counter-num" style={{color:"var(--cedar)"}}>{liveStats.accepted}</div><div className="counter-label">Connections made</div></div>
@@ -978,7 +1015,7 @@ function App(){
                   <textarea className="inp" style={{height:100,resize:"vertical",marginBottom:12}}
                     placeholder={feedbackType==="Feedback"?"What could be better, what do you love…":feedbackType==="Request"?"What feature or change would you like to see…":"Write your message…"}
                     value={feedbackText} onChange={e=>setFeedbackText(e.target.value)}/>
-                  <button className="btn btn-primary" disabled={!feedbackText.trim()} onClick={()=>{if(feedbackText.trim())setFeedbackSent(true);}}>Send {feedbackType} →</button>
+                  <button className="btn btn-primary" disabled={!feedbackText.trim()} onClick={sendFeedback}>Send {feedbackType} →</button>
                 </>
               )}
             </div>
